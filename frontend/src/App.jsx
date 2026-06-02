@@ -58,6 +58,7 @@ function App() {
   const [parsing, setParsing] = useState(false)
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
+  const [liveMessage, setLiveMessage] = useState('')
 
   useEffect(() => {
     refreshQuotes()
@@ -96,6 +97,18 @@ function App() {
     updateField(name, Number.isNaN(parsed) ? 0 : parsed)
   }
 
+  function updateRawText(value) {
+    setRawText(value)
+    if (parseResult) {
+      setParseResult(null)
+    }
+  }
+
+  function resetParserText() {
+    setRawText(messyDemo)
+    setParseResult(null)
+  }
+
   function toggleAccessorial(value) {
     setForm((current) => {
       const exists = current.accessorials.includes(value)
@@ -113,12 +126,15 @@ function App() {
     setLoading(true)
     setError('')
     setCopied(false)
+    setLiveMessage('Generating quote.')
     try {
       const data = await createQuote(form)
       setQuote(data)
       await refreshQuotes()
+      setLiveMessage('Quote generated.')
     } catch (err) {
       setError(err.message)
+      setLiveMessage('Quote generation failed.')
     } finally {
       setLoading(false)
     }
@@ -127,12 +143,15 @@ function App() {
   async function handleParse() {
     setParsing(true)
     setError('')
+    setLiveMessage('Parsing customer request.')
     try {
       const data = await parseRequestText(rawText)
       setParseResult(data)
       setForm((current) => mergeDraftIntoForm(current, data.draft, data.extractedFields))
+      setLiveMessage('Customer request parsed.')
     } catch (err) {
       setError(err.message)
+      setLiveMessage('Request parsing failed.')
     } finally {
       setParsing(false)
     }
@@ -147,112 +166,135 @@ function App() {
       }
       await navigator.clipboard.writeText(quote.customerMessage)
       setCopied(true)
+      setLiveMessage('Customer response copied.')
       setTimeout(() => setCopied(false), 1600)
     } catch {
       setCopied(false)
       setError('Unable to copy automatically. Select the customer-ready response and copy it manually.')
+      setLiveMessage('Copy failed.')
     }
   }
 
   return (
     <div className="app-shell">
       <header className="hero">
-        <div>
-          <p className="eyebrow">DelGate practical assessment</p>
-          <h1>AI-powered freight quote assistant</h1>
+        <div className="hero-copy">
+          <SectionLabel text="DelGate workbench" />
+          <h1>
+            Freight quotes with <span className="gradient-text">operator control</span>
+          </h1>
           <p className="hero-text">
-            A Go + React MVP that calculates a transparent demo freight estimate and uses AI to summarize, flag missing details, and draft a customer-ready response.
+            Estimate, review, and draft customer-ready freight responses from one focused workspace.
           </p>
+          <div className="hero-actions">
+            <button type="button" className="primary action-fit" onClick={() => setForm(demoForm)}>
+              Load demo
+              <span aria-hidden="true">→</span>
+            </button>
+            <button type="button" className="secondary action-fit" onClick={resetParserText}>
+              Reset parser
+            </button>
+          </div>
         </div>
-        <div className="hero-card">
-          <span className="hero-card-label">Design principle</span>
-          <strong>Deterministic pricing + AI workflow support</strong>
-          <p>The LLM helps with explanation and triage. It does not invent the quote.</p>
-        </div>
+        <HeroGraphic quote={quote} quotes={quotes} />
       </header>
 
-      {error && <div className="alert error">{error}</div>}
-
-      <section className="parser-card">
-        <div>
-          <p className="section-kicker">Messy request parser</p>
-          <h2>Paste a customer freight request</h2>
-          <p className="muted">Useful for quote requests that arrive through email, chat, or notes.</p>
+      {error && (
+        <div className="alert error" role="alert" aria-live="polite">
+          {error}
         </div>
-        <textarea
-          value={rawText}
-          onChange={(event) => setRawText(event.target.value)}
-          rows={3}
-          aria-label="Raw customer request"
-        />
+      )}
+
+      <div className="sr-only" role="status" aria-live="polite">{liveMessage}</div>
+
+      <section className="parser-card" aria-labelledby="parser-title" aria-busy={parsing}>
+        <div className="section-title-row">
+          <div>
+            <SectionLabel text="Request parser" />
+            <h2 id="parser-title">Paste customer request text</h2>
+          </div>
+          {parseResult && <span className="result-count">{parseResult.extractedFields.length} fields</span>}
+        </div>
+        <label className="field full parser-input" htmlFor="raw-request-text">
+          <span>Request text</span>
+          <textarea
+            id="raw-request-text"
+            value={rawText}
+            onChange={(event) => updateRawText(event.target.value)}
+            rows={4}
+          />
+        </label>
         <div className="button-row">
-          <button className="secondary" type="button" onClick={handleParse} disabled={parsing}>
+          <button className="primary action-fit" type="button" onClick={handleParse} disabled={parsing}>
             {parsing ? 'Parsing…' : 'Parse request'}
+            <span aria-hidden="true">→</span>
           </button>
-          <button className="ghost" type="button" onClick={() => setRawText(messyDemo)}>
-            Reset sample text
+          <button className="ghost action-fit" type="button" onClick={resetParserText}>
+            Reset text
           </button>
         </div>
         {parseResult && (
-          <div className="parse-result">
-            <div>
-              <strong>Extracted:</strong> {parseResult.extractedFields.length ? parseResult.extractedFields.join(', ') : 'No fields detected'}
-            </div>
-            <div>
-              <strong>Still needed:</strong> {parseResult.missingHints.length ? parseResult.missingHints.join(', ') : 'None'}
-            </div>
-            {parseResult.warnings.length > 0 && <div><strong>Warnings:</strong> {parseResult.warnings.join('; ')}</div>}
+          <div className="parse-result" aria-live="polite">
+            <ParseGroup label="Extracted" items={parseResult.extractedFields} empty="No fields detected" />
+            <ParseGroup label="Still needed" items={parseResult.missingHints} empty="None" />
+            {parseResult.warnings.length > 0 && <ParseGroup label="Warnings" items={parseResult.warnings} />}
           </div>
         )}
       </section>
 
       <main className="content-grid">
-        <form className="quote-form" onSubmit={handleSubmit}>
+        <form className="quote-form" onSubmit={handleSubmit} aria-busy={loading}>
           <div className="form-title-row">
             <div>
-              <p className="section-kicker">Quote intake</p>
+              <SectionLabel text="Quote intake" />
               <h2>Shipment details</h2>
             </div>
             <div className="button-row compact">
-              <button type="button" className="ghost" onClick={() => setForm(emptyForm)}>Clear</button>
-              <button type="button" className="secondary" onClick={() => setForm(demoForm)}>Load demo</button>
+              <button type="button" className="ghost action-fit" onClick={() => setForm(emptyForm)}>Clear</button>
+              <button type="button" className="secondary action-fit" onClick={() => setForm(demoForm)}>Load demo</button>
             </div>
           </div>
 
-          <div className="form-grid two">
-            <Input label="Customer name" value={form.customerName} onChange={(value) => updateField('customerName', value)} />
-            <Input label="Customer email" value={form.customerEmail} onChange={(value) => updateField('customerEmail', value)} />
-          </div>
+          <FormSection title="Customer">
+            <div className="form-grid two">
+              <Input label="Customer name" value={form.customerName} autoComplete="name" onChange={(value) => updateField('customerName', value)} />
+              <Input label="Customer email" type="email" value={form.customerEmail} autoComplete="email" onChange={(value) => updateField('customerEmail', value)} />
+            </div>
+          </FormSection>
 
-          <div className="form-grid two panel-pair">
-            <LocationPanel title="Pickup" location={form.origin} onChange={(name, value) => updateLocation('origin', name, value)} />
-            <LocationPanel title="Delivery" location={form.destination} onChange={(name, value) => updateLocation('destination', name, value)} />
-          </div>
+          <FormSection title="Route">
+            <div className="form-grid two panel-pair">
+              <LocationPanel title="Pickup" location={form.origin} onChange={(name, value) => updateLocation('origin', name, value)} />
+              <LocationPanel title="Delivery" location={form.destination} onChange={(name, value) => updateLocation('destination', name, value)} />
+            </div>
+          </FormSection>
 
-          <div className="form-grid three">
-            <Select label="Shipment type" value={form.shipmentType} onChange={(value) => updateField('shipmentType', value)} options={[
-              ['ltl_pallet', 'LTL pallet'],
-              ['parcel', 'Parcel'],
-              ['furniture', 'Furniture'],
-              ['appliance', 'Appliance'],
-              ['bulky_item', 'Big / bulky item'],
+          <FormSection title="Freight profile">
+            <div className="form-grid three">
+              <Select label="Shipment type" value={form.shipmentType} onChange={(value) => updateField('shipmentType', value)} options={[
+                ['ltl_pallet', 'LTL pallet'],
+                ['parcel', 'Parcel'],
+                ['furniture', 'Furniture'],
+                ['appliance', 'Appliance'],
+                ['bulky_item', 'Big / bulky item'],
+              ]} />
+              <Input label="Pieces" type="number" value={form.pieces} min="0" step="1" inputMode="numeric" onChange={(value) => updateNumber('pieces', value)} />
+              <Input label="Pallets" type="number" value={form.pallets} min="0" step="1" inputMode="numeric" onChange={(value) => updateNumber('pallets', value)} />
+            </div>
+
+            <div className="form-grid four">
+              <Input label="Weight lbs" type="number" value={form.weightLbs} min="0" step="any" inputMode="decimal" onChange={(value) => updateNumber('weightLbs', value)} />
+              <Input label="Length in" type="number" value={form.lengthIn} min="0" step="any" inputMode="decimal" onChange={(value) => updateNumber('lengthIn', value)} />
+              <Input label="Width in" type="number" value={form.widthIn} min="0" step="any" inputMode="decimal" onChange={(value) => updateNumber('widthIn', value)} />
+              <Input label="Height in" type="number" value={form.heightIn} min="0" step="any" inputMode="decimal" onChange={(value) => updateNumber('heightIn', value)} />
+            </div>
+
+            <Select label="Service level" value={form.serviceLevel} onChange={(value) => updateField('serviceLevel', value)} options={[
+              ['standard', 'Standard'],
+              ['expedited', 'Expedited'],
+              ['same_day', 'Same day'],
             ]} />
-            <Input label="Pieces" type="number" value={form.pieces} onChange={(value) => updateNumber('pieces', value)} />
-            <Input label="Pallets" type="number" value={form.pallets} onChange={(value) => updateNumber('pallets', value)} />
-          </div>
-
-          <div className="form-grid four">
-            <Input label="Weight lbs" type="number" value={form.weightLbs} onChange={(value) => updateNumber('weightLbs', value)} />
-            <Input label="Length in" type="number" value={form.lengthIn} onChange={(value) => updateNumber('lengthIn', value)} />
-            <Input label="Width in" type="number" value={form.widthIn} onChange={(value) => updateNumber('widthIn', value)} />
-            <Input label="Height in" type="number" value={form.heightIn} onChange={(value) => updateNumber('heightIn', value)} />
-          </div>
-
-          <Select label="Service level" value={form.serviceLevel} onChange={(value) => updateField('serviceLevel', value)} options={[
-            ['standard', 'Standard'],
-            ['expedited', 'Expedited'],
-            ['same_day', 'Same day'],
-          ]} />
+          </FormSection>
 
           <fieldset className="accessorials">
             <legend>Accessorials</legend>
@@ -276,12 +318,13 @@ function App() {
               value={form.notes}
               onChange={(event) => updateField('notes', event.target.value)}
               rows={4}
-              placeholder="Example: Customer needs delivery before Friday; confirm appointment window."
+              placeholder="Customer needs delivery before Friday; confirm appointment window."
             />
           </label>
 
-          <button className="primary" type="submit" disabled={loading}>
+          <button className="primary submit-button" type="submit" disabled={loading}>
             {loading ? 'Generating quote…' : 'Generate quote'}
+            <span aria-hidden="true">→</span>
           </button>
         </form>
 
@@ -290,7 +333,7 @@ function App() {
             <QuoteResult quote={quote} currency={currency} onCopy={copyCustomerMessage} copied={copied} />
           ) : (
             <div className="empty-state">
-              <p className="section-kicker">Quote result</p>
+              <SectionLabel text="Quote result" />
               <h2>No quote yet</h2>
               <p>Load the demo or enter shipment details to generate the first estimate.</p>
             </div>
@@ -299,15 +342,83 @@ function App() {
           <QuoteHistory quotes={quotes} currency={currency} onSelect={setQuote} />
         </aside>
       </main>
+
+      <section className="ops-strip" aria-label="Quote workflow status">
+        <div>
+          <SectionLabel text="Operations rhythm" inverted />
+          <h2>Deterministic pricing. AI-assisted communication.</h2>
+        </div>
+        <div className="ops-metrics">
+          <Metric label="Pricing mode" value="Rules first" />
+          <Metric label="History cap" value="1,000" />
+          <Metric label="AI guardrail" value="Fallback ready" />
+        </div>
+      </section>
     </div>
   )
 }
 
-function Input({ label, value, onChange, type = 'text' }) {
+function SectionLabel({ text, inverted = false }) {
+  return (
+    <p className={`section-kicker${inverted ? ' inverted' : ''}`}>
+      <span aria-hidden="true" />
+      {text}
+    </p>
+  )
+}
+
+function HeroGraphic({ quote, quotes }) {
+  const latestStatus = quote?.status || 'Ready when details land'
+  const summary = quote
+    ? `Current quote estimate ${quote.currency} ${Math.round(quote.midpoint)}, status ${latestStatus}, ${quotes.length} recent quotes.`
+    : `${quotes.length} recent quotes. No current quote estimate yet.`
+  return (
+    <div className="hero-graphic" role="img" aria-label={summary}>
+      <div className="hero-ring" aria-hidden="true" />
+      <div className="hero-node primary-node" aria-hidden="true" />
+      <div className="hero-node secondary-node" aria-hidden="true" />
+      <div className="hero-panel floating-one">
+        <span>Estimate</span>
+        <strong>{quote ? `${quote.currency} ${Math.round(quote.midpoint)}` : 'CAD ready'}</strong>
+      </div>
+      <div className="hero-panel floating-two">
+        <span>Status</span>
+        <strong>{latestStatus}</strong>
+      </div>
+      <div className="hero-grid-dots" aria-hidden="true" />
+      <div className="hero-count">
+        <span>{quotes.length}</span>
+        <small>recent</small>
+      </div>
+    </div>
+  )
+}
+
+function FormSection({ title, children }) {
+  return (
+    <section className="form-section">
+      <h3>{title}</h3>
+      {children}
+    </section>
+  )
+}
+
+function ParseGroup({ label, items, empty = '' }) {
+  return (
+    <div>
+      <strong>{label}</strong>
+      <div className="parse-chip-list">
+        {items.length ? items.map((item) => <span key={item}>{item}</span>) : <em>{empty}</em>}
+      </div>
+    </div>
+  )
+}
+
+function Input({ label, value, onChange, type = 'text', ...props }) {
   return (
     <label className="field">
       <span>{label}</span>
-      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} {...props} />
     </label>
   )
 }
@@ -326,13 +437,14 @@ function Select({ label, value, onChange, options }) {
 }
 
 function LocationPanel({ title, location, onChange }) {
+  const section = title.toLowerCase()
   return (
-    <div className="location-panel">
-      <h3>{title}</h3>
-      <Input label="City" value={location.city} onChange={(value) => onChange('city', value)} />
-      <Input label="Province" value={location.province} onChange={(value) => onChange('province', value)} />
-      <Input label="Postal code" value={location.postalCode} onChange={(value) => onChange('postalCode', value)} />
-    </div>
+    <fieldset className="location-panel">
+      <legend>{title}</legend>
+      <Input label={`${title} city`} value={location.city} autoComplete={`section-${section} address-level2`} onChange={(value) => onChange('city', value)} />
+      <Input label={`${title} province`} value={location.province} autoComplete={`section-${section} address-level1`} onChange={(value) => onChange('province', value)} />
+      <Input label={`${title} postal code`} value={location.postalCode} autoComplete={`section-${section} postal-code`} onChange={(value) => onChange('postalCode', value)} />
+    </fieldset>
   )
 }
 
@@ -341,7 +453,7 @@ function QuoteResult({ quote, currency, onCopy, copied }) {
     <section className="quote-result">
       <div className="quote-topline">
         <div>
-          <p className="section-kicker">{quote.quoteId}</p>
+          <SectionLabel text={quote.quoteId} />
           <h2>{quote.routeLabel}</h2>
         </div>
         <StatusBadge value={quote.status} />
@@ -420,7 +532,7 @@ function QuoteHistory({ quotes, currency, onSelect }) {
     <section className="history-card">
       <div className="section-title-row">
         <div>
-          <p className="section-kicker">In-memory history</p>
+          <SectionLabel text="In-memory history" />
           <h2>Recent quotes</h2>
         </div>
       </div>
@@ -443,7 +555,12 @@ function QuoteHistory({ quotes, currency, onSelect }) {
 
 function StatusBadge({ value }) {
   const className = value === 'Ready to Quote' ? 'ready' : value === 'Manual Review Required' ? 'manual' : 'review'
-  return <span className={`status-badge ${className}`}>{value}</span>
+  return (
+    <span className={`status-badge ${className}`}>
+      <span aria-hidden="true" />
+      {value}
+    </span>
+  )
 }
 
 function Metric({ label, value }) {
