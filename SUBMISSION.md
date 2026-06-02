@@ -7,7 +7,7 @@ DelGate Freight Quote Assistant MVP
 ## Submission assets
 
 - Loom walkthrough: add public or unlisted Loom URL before final submission.
-- Live demo: add Heroku URL if available. If not hosted, use the local/Docker run instructions below.
+- Live demo: https://delgate-mvp-954a8b03876e.herokuapp.com/
 - Screenshots: add final screenshots under `docs/screenshots/` if needed.
 - CI/CD checklist: `docs/ci_cd.md`
 - API examples: `docs/api_examples.md`
