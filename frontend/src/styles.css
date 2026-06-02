@@ -393,6 +393,27 @@ h3 {
   gap: 16px;
 }
 
+.quote-result .quote-topline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+}
+
+.quote-result .quote-topline > div:first-child {
+  min-width: 0;
+}
+
+.quote-result .section-kicker {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quote-result h2 {
+  overflow-wrap: anywhere;
+}
+
 .heading-with-chip {
   display: flex;
   align-items: center;
@@ -427,6 +448,11 @@ h3 {
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.quote-actions {
+  width: 100%;
+  justify-content: flex-start;
 }
 
 .summary-title-row {
