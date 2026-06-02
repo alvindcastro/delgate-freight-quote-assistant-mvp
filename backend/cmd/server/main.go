@@ -139,7 +139,7 @@ func configFromEnv() (serverConfig, error) {
 		return serverConfig{}, fmt.Errorf("API_TOKEN is required when BACKEND_BIND_ADDR is %q unless ALLOW_PUBLIC_API=true", bindAddr)
 	}
 
-	port := getenv("PORT", "8080")
+	port := getenv("PORT", "8181")
 	config := serverConfig{
 		Port:                port,
 		BindAddr:            bindAddr,

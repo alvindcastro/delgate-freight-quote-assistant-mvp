@@ -72,7 +72,12 @@ delgate-freight-quote-assistant/
 ├── docs/
 │   ├── ci_cd.md
 │   ├── demo_walkthrough.md
+│   ├── api_examples.md
+│   ├── development_guide.md
 │   ├── heroku_deployment.md
+│   ├── operations_notes.md
+│   ├── repo_sharing_checklist.md
+│   ├── troubleshooting.md
 │   └── screenshots/
 ├── Makefile
 ├── Dockerfile.heroku
@@ -103,7 +108,7 @@ cp .env.example .env
 go run ./cmd/server
 ```
 
-The backend starts on `http://localhost:8080`.
+The backend starts on `http://localhost:8181`.
 
 Local backend startup loads `backend/.env` automatically when present. Shell
 environment variables still take precedence over values in the file.
@@ -126,7 +131,7 @@ npm run dev
 The frontend starts on `http://localhost:5173`.
 
 For local Vite development, `VITE_API_URL` can stay blank. The Vite dev server
-proxies `/api` to `http://localhost:8080`.
+proxies `/api` to `http://localhost:8181`.
 
 Shortcut from the repository root:
 
@@ -145,10 +150,11 @@ docker compose up --build
 Open the frontend at `http://localhost:5173`. The backend is kept internal to
 the Compose network; the frontend nginx container proxies `/api` requests to it.
 
-The compose stack sets `API_TOKEN=dev-token` by default because the backend
-binds to `0.0.0.0` inside Docker. Nginx injects that token server-side when
-proxying `/api`, so the browser bundle does not expose it. To use a different
-token or enable live AI summaries:
+The compose stack sets local-only `API_TOKEN=dev-token` by default because the
+backend binds to `0.0.0.0` inside Docker. Nginx injects that token server-side
+when proxying `/api`, so the browser bundle does not expose it. Before exposing
+or publishing any backend port, replace `dev-token` with your own generated
+token. To use a different token or enable live AI summaries:
 
 ```bash
 API_TOKEN=your-token OPENAI_API_KEY=your-api-key docker compose up --build
@@ -165,12 +171,13 @@ make docker-down
 For direct backend API testing, publish the backend port explicitly:
 
 ```bash
-docker compose run --rm -p 8080:8080 backend
+docker compose run --rm -p 8181:8181 backend
 ```
 
-Because Compose sets `API_TOKEN=dev-token` by default, direct quote and parse
-requests to that backend must include `X-API-Token: dev-token` or
-`Authorization: Bearer dev-token`.
+Because Compose sets local-only `API_TOKEN=dev-token` by default, direct quote
+and parse requests to that backend must include `X-API-Token: dev-token` or
+`Authorization: Bearer dev-token`. Replace that token before exposing or
+publishing a backend port.
 
 ## Deploy to Heroku
 
@@ -226,6 +233,23 @@ cd frontend && npm run build
 
 You can run those commands separately while iterating on one side of the app.
 
+## Developer guides
+
+- `docs/api_examples.md` - health, quote, parse, quote history, local, Docker,
+  and tokened curl examples.
+- `docs/development_guide.md` - local setup, Docker rebuilds, API smoke tests,
+  environment variables, and implementation notes.
+- `docs/operations_notes.md` - nice-to-know runtime behavior for proxying,
+  tokens, Heroku, in-memory history, and health checks.
+- `docs/repo_sharing_checklist.md` - pre-share checks for secrets, generated
+  files, large files, docs, and Docker state.
+- `docs/troubleshooting.md` - common fixes for `Request failed`, stale
+  containers, port collisions, API token issues, Vite proxy mistakes, and Heroku
+  runtime behavior.
+- `docs/demo_walkthrough.md` - evaluator-ready product demo steps.
+- `docs/heroku_deployment.md` and `docs/ci_cd.md` - deployment and automation
+  details.
+
 ## Optional OpenAI configuration
 
 The app works without an API key. To enable live AI summaries, set:
@@ -251,18 +275,19 @@ compiled into the frontend bundle.
 
 The examples below assume the local no-token backend path from `go run
 ./cmd/server`. If you are testing a Docker-backed API directly, add
-`-H "X-API-Token: dev-token"` to quote and parse requests.
+`-H "X-API-Token: dev-token"` to quote and parse requests. `dev-token` is for
+local demos only.
 
 ### Health check
 
 ```bash
-curl http://localhost:8080/api/health
+curl http://localhost:8181/api/health
 ```
 
 ### Create quote
 
 ```bash
-curl -X POST http://localhost:8080/api/quote \
+curl -X POST http://localhost:8181/api/quote \
   -H "Content-Type: application/json" \
   -d '{
     "customerName": "Test Customer",
@@ -284,7 +309,7 @@ curl -X POST http://localhost:8080/api/quote \
 ### Parse messy request text
 
 ```bash
-curl -X POST http://localhost:8080/api/parse-request \
+curl -X POST http://localhost:8181/api/parse-request \
   -H "Content-Type: application/json" \
   -d '{
     "text":"Need to ship 2 pallets from Vancouver to Calgary. Each pallet is 48x40x60 and 350 lbs. Needs liftgate and residential delivery before Friday."
@@ -293,14 +318,14 @@ curl -X POST http://localhost:8080/api/parse-request \
 
 ## Smoke test
 
-With the local backend running on `http://localhost:8080`:
+With the local backend running on `http://localhost:8181`:
 
 ```bash
-curl http://localhost:8080/api/health
+curl http://localhost:8181/api/health
 ```
 
 ```bash
-curl -X POST http://localhost:8080/api/quote \
+curl -X POST http://localhost:8181/api/quote \
   -H "Content-Type: application/json" \
   -d '{
     "customerName": "Demo Customer",
@@ -320,7 +345,7 @@ curl -X POST http://localhost:8080/api/quote \
 ```
 
 ```bash
-curl -X POST http://localhost:8080/api/parse-request \
+curl -X POST http://localhost:8181/api/parse-request \
   -H "Content-Type: application/json" \
   -d '{
     "text":"Need to ship 2 pallets from Vancouver to Calgary. Each pallet is 48x40x60 and 350 lbs. Needs liftgate and residential delivery before Friday."
@@ -331,7 +356,7 @@ For a direct Docker backend test, include the default token header on POST
 requests:
 
 ```bash
-curl -X POST http://localhost:8080/api/parse-request \
+curl -X POST http://localhost:8181/api/parse-request \
   -H "Content-Type: application/json" \
   -H "X-API-Token: dev-token" \
   -d '{"text":"Need to ship 2 pallets from Vancouver to Calgary."}'

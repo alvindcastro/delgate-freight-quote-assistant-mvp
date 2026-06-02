@@ -70,7 +70,7 @@ func TestConfigFromEnvUsesSafeDefaults(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if config.Addr != "127.0.0.1:8080" {
+	if config.Addr != "127.0.0.1:8181" {
 		t.Fatalf("expected localhost default address, got %q", config.Addr)
 	}
 	if config.QuoteHistoryLimit != store.DefaultMaxQuotes {
@@ -106,7 +106,7 @@ func TestConfigFromEnvAllowsExplicitPublicDemoWithoutToken(t *testing.T) {
 	clearConfigEnv(t)
 	t.Setenv("BACKEND_BIND_ADDR", "0.0.0.0")
 	t.Setenv("ALLOW_PUBLIC_API", "true")
-	t.Setenv("PORT", "18080")
+	t.Setenv("PORT", "18181")
 	t.Setenv("STATIC_DIR", "/app/public")
 
 	config, err := configFromEnv()
@@ -114,7 +114,7 @@ func TestConfigFromEnvAllowsExplicitPublicDemoWithoutToken(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if config.Addr != "0.0.0.0:18080" {
+	if config.Addr != "0.0.0.0:18181" {
 		t.Fatalf("expected public bind address, got %q", config.Addr)
 	}
 	if !config.AllowPublicAPI {
@@ -132,14 +132,14 @@ func TestConfigFromEnvAllowsPublicBindWithToken(t *testing.T) {
 	clearConfigEnv(t)
 	t.Setenv("BACKEND_BIND_ADDR", "0.0.0.0")
 	t.Setenv("API_TOKEN", "secret-token")
-	t.Setenv("PORT", "18080")
+	t.Setenv("PORT", "18181")
 
 	config, err := configFromEnv()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if config.Addr != "0.0.0.0:18080" {
+	if config.Addr != "0.0.0.0:18181" {
 		t.Fatalf("expected public bind address, got %q", config.Addr)
 	}
 	if config.APIToken != "secret-token" {

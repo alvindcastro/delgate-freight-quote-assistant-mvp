@@ -14,7 +14,7 @@ RUN apk add --no-cache ca-certificates wget && addgroup -S app && adduser -S app
 WORKDIR /app
 COPY --from=build /out/delgate-api /app/delgate-api
 
-ENV PORT=8080 \
+ENV PORT=8181 \
     BACKEND_BIND_ADDR=0.0.0.0 \
     QUOTE_HISTORY_LIMIT=1000 \
     MAX_REQUEST_BODY_BYTES=1048576 \
@@ -23,7 +23,7 @@ ENV PORT=8080 \
     HTTP_WRITE_TIMEOUT=15s \
     HTTP_IDLE_TIMEOUT=60s
 
-EXPOSE 8080
+EXPOSE 8181
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
     CMD wget -qO- http://127.0.0.1:${PORT}/api/health >/dev/null || exit 1
 USER app

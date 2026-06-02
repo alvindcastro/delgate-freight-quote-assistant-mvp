@@ -6,13 +6,17 @@ DelGate Freight Quote Assistant MVP
 
 ## Submission assets
 
-- Loom walkthrough: TODO add public or unlisted Loom URL before submission.
-- Live demo: TODO add Heroku URL if available. If not hosted, use the local/Docker run instructions below.
-- Screenshots: `docs/screenshots/`
+- Loom walkthrough: add public or unlisted Loom URL before final submission.
+- Live demo: add Heroku URL if available. If not hosted, use the local/Docker run instructions below.
+- Screenshots: add final screenshots under `docs/screenshots/` if needed.
 - CI/CD checklist: `docs/ci_cd.md`
+- API examples: `docs/api_examples.md`
+- Developer guide: `docs/development_guide.md`
 - Demo walkthrough script: `docs/demo_walkthrough.md`
 - Heroku deployment checklist: `docs/heroku_deployment.md`
-- Loom recording script: `docs/loom_script.md`
+- Operations notes: `docs/operations_notes.md`
+- Troubleshooting: `docs/troubleshooting.md`
+- Loom recording script: keep local if it contains presenter-specific details.
 
 ## Brief explanation
 
@@ -44,8 +48,16 @@ docker compose up --build
 Open `http://localhost:5173`.
 
 Docker keeps the backend internal to the Compose network and serves API calls
-through the frontend nginx proxy. The stack uses `API_TOKEN=dev-token` by
-default and injects that token server-side for `/api` requests.
+through the frontend nginx proxy. The stack uses local-only
+`API_TOKEN=dev-token` by default and injects that token server-side for `/api`
+requests. Replace `dev-token` before exposing or publishing a backend port.
+
+If the stack has stale containers after a port or proxy change:
+
+```bash
+docker compose down --remove-orphans
+docker compose up --build --force-recreate
+```
 
 ### Backend
 
@@ -55,7 +67,7 @@ cp .env.example .env
 go run ./cmd/server
 ```
 
-Backend URL: `http://localhost:8080`
+Backend URL: `http://localhost:8181`
 
 Shortcut from the repository root:
 
@@ -81,7 +93,15 @@ make frontend
 ```
 
 For Vite local development, `VITE_API_URL` can stay blank because the dev server
-proxies `/api` to `http://localhost:8080`.
+proxies `/api` to `http://localhost:8181`.
+
+If `8181` is unavailable, set the same custom port on the backend and the Vite
+proxy:
+
+```bash
+PORT=8282 go run ./cmd/server
+BACKEND_PORT=8282 npm run dev
+```
 
 ### Heroku demo deployment
 
@@ -105,6 +125,13 @@ heroku ps:type basic -a your-delgate-demo-name
 
 Full checklist: `docs/heroku_deployment.md`.
 
+More local commands and troubleshooting notes:
+
+- `docs/development_guide.md`
+- `docs/api_examples.md`
+- `docs/operations_notes.md`
+- `docs/troubleshooting.md`
+
 ### CI/CD
 
 GitHub Actions runs backend tests, frontend build verification, and the Heroku
@@ -120,8 +147,10 @@ OPENAI_API_KEY=your_api_key_here
 OPENAI_MODEL=gpt-4o-mini
 ```
 
-For shared environments, set `API_TOKEN` on the backend and `VITE_API_TOKEN`
-on the frontend so quote and parse requests include bearer-token protection.
+For local/private demos only, `VITE_API_TOKEN` can send a browser-visible bearer
+token. Do not use `VITE_API_TOKEN` for public or shared browser deployments
+because Vite embeds it into the compiled JavaScript. For shared environments,
+use a server-side proxy, cookie/session auth, or identity-provider auth.
 
 ## How to test
 

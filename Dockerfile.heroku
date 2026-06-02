@@ -37,8 +37,8 @@ ENV BACKEND_BIND_ADDR=0.0.0.0 \
     HTTP_WRITE_TIMEOUT=15s \
     HTTP_IDLE_TIMEOUT=60s
 
-EXPOSE 8080
+EXPOSE 8181
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD wget -qO- http://127.0.0.1:${PORT:-8080}/api/health >/dev/null || exit 1
+    CMD wget -qO- http://127.0.0.1:${PORT:-8181}/api/health >/dev/null || exit 1
 USER app
 CMD ["/app/delgate-api"]

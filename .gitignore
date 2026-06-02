@@ -28,11 +28,16 @@ yarn-error.log*
 .idea/
 .vscode/
 
+# Local agent/tool state
+.agents/
+.claude/
+.codex/
+
 # Local data stores
 .beads/
 .dolt/
 *.db
 .beads-credential-key
 
-# Local scripts
+# Local submission prep
 docs/loom_script.md

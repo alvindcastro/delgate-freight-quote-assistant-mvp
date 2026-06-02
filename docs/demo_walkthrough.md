@@ -6,9 +6,24 @@ A customer asks for an LTL freight quote:
 
 > Need to ship 2 pallets from Vancouver to Calgary. Each pallet is about 48x40x60 and 350 lbs. Customer needs liftgate and residential delivery before Friday.
 
+## Preflight
+
+Use the Docker path for the cleanest demo:
+
+```bash
+docker compose up --build -d
+docker compose ps
+curl http://localhost:5173/api/health
+```
+
+Open `http://localhost:5173`.
+
+For two-terminal local development, start the backend on
+`http://localhost:8181` and the Vite frontend on `http://localhost:5173`.
+
 ## Steps
 
-1. Open the frontend.
+1. Open `http://localhost:5173`.
 2. Click **Load demo**.
 3. Click **Generate quote**.
 4. Review:
