@@ -51,7 +51,7 @@ func TestLoadLocalEnvLoadsBackendEnvFromRepoRoot(t *testing.T) {
 	}
 
 	t.Setenv("DOTENV_TEST_BACKEND_VALUE", "")
-	t.Chdir(root)
+	chdir(t, root)
 
 	if err := loadLocalEnv(); err != nil {
 		t.Fatal(err)
@@ -145,6 +145,23 @@ func TestConfigFromEnvAllowsPublicBindWithToken(t *testing.T) {
 	if config.APIToken != "secret-token" {
 		t.Fatalf("expected API token to be configured")
 	}
+}
+
+func chdir(t *testing.T, dir string) {
+	t.Helper()
+
+	previous, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(previous); err != nil {
+			t.Fatalf("restore working directory: %v", err)
+		}
+	})
 }
 
 func clearConfigEnv(t *testing.T) {
