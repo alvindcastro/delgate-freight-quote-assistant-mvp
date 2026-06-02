@@ -130,7 +130,7 @@ function App() {
     try {
       const data = await parseRequestText(rawText)
       setParseResult(data)
-      setForm((current) => mergeDraftIntoForm(current, data.draft))
+      setForm((current) => mergeDraftIntoForm(current, data.draft, data.extractedFields))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -140,9 +140,18 @@ function App() {
 
   async function copyCustomerMessage() {
     if (!quote?.customerMessage) return
-    await navigator.clipboard.writeText(quote.customerMessage)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1600)
+    setError('')
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard API unavailable')
+      }
+      await navigator.clipboard.writeText(quote.customerMessage)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1600)
+    } catch {
+      setCopied(false)
+      setError('Unable to copy automatically. Select the customer-ready response and copy it manually.')
+    }
   }
 
   return (
@@ -457,31 +466,37 @@ function TagList({ items, empty }) {
   )
 }
 
-function mergeDraftIntoForm(current, draft) {
+function mergeDraftIntoForm(current, draft = {}, extractedFields = []) {
+  const accessorials = Array.isArray(draft.accessorials) ? draft.accessorials : []
+  const extracted = new Set(extractedFields.map((field) => String(field).toLowerCase()))
+  const has = (...fields) => fields.some((field) => extracted.has(field))
+  const pickString = (value, fallback) => (typeof value === 'string' && value.trim() !== '' ? value : fallback)
+  const pickNumber = (value, fallback) => (Number.isFinite(value) && value > 0 ? value : fallback)
+
   return {
     ...current,
-    customerName: draft.customerName || current.customerName,
-    customerEmail: draft.customerEmail || current.customerEmail,
+    customerName: has('customer name') ? pickString(draft.customerName, current.customerName) : current.customerName,
+    customerEmail: has('customer email') ? pickString(draft.customerEmail, current.customerEmail) : current.customerEmail,
     origin: {
-      city: draft.origin?.city || current.origin.city,
-      province: draft.origin?.province || current.origin.province,
-      postalCode: draft.origin?.postalCode || current.origin.postalCode,
+      city: has('origin', 'origin city') ? pickString(draft.origin?.city, current.origin.city) : current.origin.city,
+      province: has('origin', 'origin province') ? pickString(draft.origin?.province, current.origin.province) : current.origin.province,
+      postalCode: has('origin postal code', 'pickup postal code') ? pickString(draft.origin?.postalCode, current.origin.postalCode) : current.origin.postalCode,
     },
     destination: {
-      city: draft.destination?.city || current.destination.city,
-      province: draft.destination?.province || current.destination.province,
-      postalCode: draft.destination?.postalCode || current.destination.postalCode,
+      city: has('destination', 'destination city') ? pickString(draft.destination?.city, current.destination.city) : current.destination.city,
+      province: has('destination', 'destination province') ? pickString(draft.destination?.province, current.destination.province) : current.destination.province,
+      postalCode: has('destination postal code', 'delivery postal code') ? pickString(draft.destination?.postalCode, current.destination.postalCode) : current.destination.postalCode,
     },
-    shipmentType: draft.shipmentType || current.shipmentType,
-    pieces: draft.pieces || current.pieces,
-    pallets: draft.pallets || current.pallets,
-    weightLbs: draft.weightLbs || current.weightLbs,
-    lengthIn: draft.lengthIn || current.lengthIn,
-    widthIn: draft.widthIn || current.widthIn,
-    heightIn: draft.heightIn || current.heightIn,
-    serviceLevel: draft.serviceLevel || current.serviceLevel,
-    accessorials: draft.accessorials?.length ? draft.accessorials : current.accessorials,
-    notes: draft.notes || current.notes,
+    shipmentType: has('shipment type', 'pallet count') ? pickString(draft.shipmentType, current.shipmentType) : current.shipmentType,
+    pieces: has('piece count', 'pallet count') ? pickNumber(draft.pieces, current.pieces) : current.pieces,
+    pallets: has('pallet count') ? pickNumber(draft.pallets, current.pallets) : current.pallets,
+    weightLbs: has('weight') ? pickNumber(draft.weightLbs, current.weightLbs) : current.weightLbs,
+    lengthIn: has('dimensions') ? pickNumber(draft.lengthIn, current.lengthIn) : current.lengthIn,
+    widthIn: has('dimensions') ? pickNumber(draft.widthIn, current.widthIn) : current.widthIn,
+    heightIn: has('dimensions') ? pickNumber(draft.heightIn, current.heightIn) : current.heightIn,
+    serviceLevel: has('service level') ? pickString(draft.serviceLevel, current.serviceLevel) : current.serviceLevel,
+    accessorials: has('accessorials') && accessorials.length ? accessorials : current.accessorials,
+    notes: current.notes ? current.notes : pickString(draft.notes, current.notes),
   }
 }
 

@@ -11,6 +11,7 @@ frontend:
 
 test:
 	cd $(BACKEND_DIR) && go test ./...
+	cd $(FRONTEND_DIR) && npm run build
 
 clean:
 	rm -rf $(FRONTEND_DIR)/dist $(FRONTEND_DIR)/node_modules $(BACKEND_DIR)/bin

@@ -93,12 +93,15 @@ go run ./cmd/server
 
 The backend starts on `http://localhost:8080`.
 
+Local backend startup loads `backend/.env` automatically when present. Shell
+environment variables still take precedence over values in the file.
+
 ### 2. Start the frontend
 
 ```bash
 cd frontend
 cp .env.example .env
-npm install
+npm ci
 npm run dev
 ```
 
@@ -114,6 +117,13 @@ OPENAI_MODEL=gpt-4o-mini
 ```
 
 The backend will use the OpenAI API for summary generation. If the call fails, it falls back to the local assistant automatically.
+
+By default the backend binds to `127.0.0.1`. For deployed or shared
+environments, set `BACKEND_BIND_ADDR` explicitly and configure `API_TOKEN`.
+When `API_TOKEN` is set, quote and parse requests must send
+`Authorization: Bearer <token>` or `X-API-Token`. A browser demo can set the
+same value in `frontend/.env` as `VITE_API_TOKEN`; leave both token variables
+unset for local demo use.
 
 ## API examples
 

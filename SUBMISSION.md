@@ -40,7 +40,7 @@ Backend URL: `http://localhost:8080`
 ```bash
 cd frontend
 cp .env.example .env
-npm install
+npm ci
 npm run dev
 ```
 
@@ -48,20 +48,22 @@ Frontend URL: `http://localhost:5173`
 
 ## Optional AI setup
 
-The app works without an API key. To enable live AI summaries, set this in `backend/.env` or your shell:
+The app works without an API key. To enable live AI summaries, set this in `backend/.env` or your shell. Local backend startup loads `backend/.env` automatically, while shell variables take precedence:
 
 ```bash
 OPENAI_API_KEY=your_api_key_here
 OPENAI_MODEL=gpt-4o-mini
 ```
 
+For shared environments, set `API_TOKEN` on the backend and `VITE_API_TOKEN`
+on the frontend so quote and parse requests include bearer-token protection.
+
 ## How to test
 
-Run backend tests:
+Run the project quality gate:
 
 ```bash
-cd backend
-go test ./...
+make test
 ```
 
 Manual test:

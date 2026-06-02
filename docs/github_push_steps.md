@@ -1,16 +1,14 @@
 # GitHub Push Steps
 
-From the project root:
+This repository already has a `main` branch and an `origin` remote. From the
+project root, check status, commit your changes, then push:
 
 ```bash
-git init
-git add .
-git commit -m "Build freight quote assistant MVP"
-git branch -M main
-git remote add origin https://github.com/YOUR_USERNAME/delgate-freight-quote-assistant.git
-git push -u origin main
+git status
+git add <changed-files>
+git commit -m "Describe the change"
+git pull --rebase
+git push
 ```
-
-Before pushing, replace `YOUR_USERNAME` with your GitHub username and make sure you created the empty repository on GitHub.
 
 Do not commit `.env` files. The `.gitignore` already excludes them.

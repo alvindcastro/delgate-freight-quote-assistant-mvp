@@ -1,9 +1,11 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+const API_TOKEN = import.meta.env.VITE_API_TOKEN || ''
 
 async function request(path, options = {}) {
   const response = await fetch(`${API_URL}${path}`, {
     headers: {
       'Content-Type': 'application/json',
+      ...(API_TOKEN ? { Authorization: `Bearer ${API_TOKEN}` } : {}),
       ...(options.headers || {}),
     },
     ...options,
@@ -35,5 +37,31 @@ export function parseRequestText(text) {
   return request('/api/parse-request', {
     method: 'POST',
     body: JSON.stringify({ text }),
-  })
+  }).then(normalizeParseResponse)
+}
+
+function normalizeParseResponse(payload) {
+  const response = payload && typeof payload === 'object' ? payload : {}
+  const draft = response.draft && typeof response.draft === 'object' ? response.draft : {}
+
+  return {
+    ...response,
+    draft: {
+      ...draft,
+      origin: normalizeLocation(draft.origin),
+      destination: normalizeLocation(draft.destination),
+      accessorials: normalizeArray(draft.accessorials),
+    },
+    extractedFields: normalizeArray(response.extractedFields),
+    missingHints: normalizeArray(response.missingHints),
+    warnings: normalizeArray(response.warnings),
+  }
+}
+
+function normalizeLocation(location) {
+  return location && typeof location === 'object' ? location : {}
+}
+
+function normalizeArray(value) {
+  return Array.isArray(value) ? value : []
 }

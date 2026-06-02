@@ -2,11 +2,17 @@ package api
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/alvindcastro/delgate-freight-quote-assistant/backend/internal/assistant"
@@ -18,18 +24,35 @@ import (
 type Server struct {
 	store     *store.MemoryStore
 	assistant *assistant.Service
+	config    Config
 }
 
+type Config struct {
+	APIToken            string
+	MaxRequestBodyBytes int64
+}
+
+const DefaultMaxRequestBodyBytes int64 = 1 << 20
+
+var quoteIDFallbackCounter uint64
+
 func NewServer(store *store.MemoryStore, assistant *assistant.Service) *Server {
-	return &Server{store: store, assistant: assistant}
+	return NewServerWithConfig(store, assistant, Config{})
+}
+
+func NewServerWithConfig(store *store.MemoryStore, assistant *assistant.Service, config Config) *Server {
+	if config.MaxRequestBodyBytes <= 0 {
+		config.MaxRequestBodyBytes = DefaultMaxRequestBodyBytes
+	}
+	return &Server{store: store, assistant: assistant, config: config}
 }
 
 func (s *Server) Routes() http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/health", s.handleHealth)
-	mux.HandleFunc("/api/quote", s.handleQuote)
-	mux.HandleFunc("/api/quotes", s.handleQuotes)
-	mux.HandleFunc("/api/parse-request", s.handleParseRequest)
+	mux.HandleFunc("/api/quote", s.requireAPIToken(s.handleQuote))
+	mux.HandleFunc("/api/quotes", s.requireAPIToken(s.handleQuotes))
+	mux.HandleFunc("/api/parse-request", s.requireAPIToken(s.handleParseRequest))
 	return cors(mux)
 }
 
@@ -51,13 +74,12 @@ func (s *Server) handleQuote(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req quote.Request
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid JSON request body")
+	if !s.decodeJSON(w, r, &req) {
 		return
 	}
 
 	now := time.Now().UTC()
-	quoteID := fmt.Sprintf("Q-%s", now.Format("20060102-150405"))
+	quoteID := newQuoteID(now)
 	resp := quote.Calculate(req, quote.CalculateOptions{QuoteID: quoteID, CreatedAt: now})
 
 	ctx, cancel := context.WithTimeout(r.Context(), 12*time.Second)
@@ -86,8 +108,7 @@ func (s *Server) handleParseRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var req parser.ParseRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid JSON request body")
+	if !s.decodeJSON(w, r, &req) {
 		return
 	}
 	if strings.TrimSpace(req.Text) == "" {
@@ -119,6 +140,59 @@ func cors(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func (s *Server) decodeJSON(w http.ResponseWriter, r *http.Request, value any) bool {
+	r.Body = http.MaxBytesReader(w, r.Body, s.config.MaxRequestBodyBytes)
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(value); err != nil {
+		var maxBytesError *http.MaxBytesError
+		if errors.As(err, &maxBytesError) {
+			writeError(w, http.StatusRequestEntityTooLarge, "request body too large")
+			return false
+		}
+		writeError(w, http.StatusBadRequest, "invalid JSON request body")
+		return false
+	}
+	if err := decoder.Decode(&struct{}{}); err != io.EOF {
+		writeError(w, http.StatusBadRequest, "invalid JSON request body")
+		return false
+	}
+	return true
+}
+
+func (s *Server) requireAPIToken(next http.HandlerFunc) http.HandlerFunc {
+	token := strings.TrimSpace(s.config.APIToken)
+	if token == "" {
+		return next
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		if validAPIToken(r, token) {
+			next(w, r)
+			return
+		}
+		writeError(w, http.StatusUnauthorized, "missing or invalid API token")
+	}
+}
+
+func validAPIToken(r *http.Request, expected string) bool {
+	provided := strings.TrimSpace(r.Header.Get("X-API-Token"))
+	auth := strings.TrimSpace(r.Header.Get("Authorization"))
+	if strings.HasPrefix(strings.ToLower(auth), "bearer ") {
+		provided = strings.TrimSpace(auth[len("bearer "):])
+	}
+	return subtle.ConstantTimeCompare([]byte(provided), []byte(expected)) == 1
+}
+
+func newQuoteID(now time.Time) string {
+	var randomBytes [16]byte
+	if _, err := rand.Read(randomBytes[:]); err == nil {
+		return fmt.Sprintf("Q-%s-%s", now.Format("20060102-150405"), strings.ToUpper(hex.EncodeToString(randomBytes[:])))
+	}
+	counter := atomic.AddUint64(&quoteIDFallbackCounter, 1)
+	return fmt.Sprintf("Q-%s-%d-%d", now.Format("20060102-150405"), now.UnixNano(), counter)
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {

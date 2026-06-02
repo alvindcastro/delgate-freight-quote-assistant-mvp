@@ -10,16 +10,39 @@ import (
 type MemoryStore struct {
 	mu     sync.RWMutex
 	quotes map[string]quote.Response
+	order  []string
+	limit  int
 }
 
+const DefaultMaxQuotes = 1000
+
 func NewMemoryStore() *MemoryStore {
-	return &MemoryStore{quotes: make(map[string]quote.Response)}
+	return NewMemoryStoreWithLimit(DefaultMaxQuotes)
+}
+
+func NewMemoryStoreWithLimit(limit int) *MemoryStore {
+	if limit <= 0 {
+		limit = DefaultMaxQuotes
+	}
+	return &MemoryStore{
+		quotes: make(map[string]quote.Response),
+		order:  make([]string, 0, limit),
+		limit:  limit,
+	}
 }
 
 func (s *MemoryStore) Save(resp quote.Response) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if _, exists := s.quotes[resp.QuoteID]; !exists {
+		s.order = append(s.order, resp.QuoteID)
+	}
 	s.quotes[resp.QuoteID] = resp
+	for len(s.order) > s.limit {
+		oldest := s.order[0]
+		s.order = s.order[1:]
+		delete(s.quotes, oldest)
+	}
 }
 
 func (s *MemoryStore) List() []quote.Response {
