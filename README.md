@@ -69,7 +69,8 @@ delgate-freight-quote-assistant/
 │   └── .env.example
 ├── docs/
 │   ├── demo_walkthrough.md
-│   └── loom_script.md
+│   ├── loom_script.md
+│   └── screenshots/
 ├── Makefile
 ├── docker-compose.yml
 ├── .dockerignore
@@ -102,6 +103,12 @@ The backend starts on `http://localhost:8080`.
 Local backend startup loads `backend/.env` automatically when present. Shell
 environment variables still take precedence over values in the file.
 
+Shortcut from the repository root:
+
+```bash
+make backend
+```
+
 ### 2. Start the frontend
 
 ```bash
@@ -112,6 +119,15 @@ npm run dev
 ```
 
 The frontend starts on `http://localhost:5173`.
+
+For local Vite development, `VITE_API_URL` can stay blank. The Vite dev server
+proxies `/api` to `http://localhost:8080`.
+
+Shortcut from the repository root:
+
+```bash
+make frontend
+```
 
 ## Run with Docker
 
@@ -147,6 +163,27 @@ For direct backend API testing, publish the backend port explicitly:
 docker compose run --rm -p 8080:8080 backend
 ```
 
+Because Compose sets `API_TOKEN=dev-token` by default, direct quote and parse
+requests to that backend must include `X-API-Token: dev-token` or
+`Authorization: Bearer dev-token`.
+
+## Test and build
+
+Run the project quality gate from the repository root:
+
+```bash
+make test
+```
+
+This runs:
+
+```bash
+cd backend && go test ./...
+cd frontend && npm run build
+```
+
+You can run those commands separately while iterating on one side of the app.
+
 ## Optional OpenAI configuration
 
 The app works without an API key. To enable live AI summaries, set:
@@ -166,6 +203,10 @@ same value in `frontend/.env` as `VITE_API_TOKEN`; leave both token variables
 unset for local demo use.
 
 ## API examples
+
+The examples below assume the local no-token backend path from `go run
+./cmd/server`. If you are testing a Docker-backed API directly, add
+`-H "X-API-Token: dev-token"` to quote and parse requests.
 
 ### Health check
 
@@ -205,6 +246,52 @@ curl -X POST http://localhost:8080/api/parse-request \
   }'
 ```
 
+## Smoke test
+
+With the local backend running on `http://localhost:8080`:
+
+```bash
+curl http://localhost:8080/api/health
+```
+
+```bash
+curl -X POST http://localhost:8080/api/quote \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customerName": "Demo Customer",
+    "origin": {"city":"Vancouver","province":"BC","postalCode":"V6B 1A1"},
+    "destination": {"city":"Calgary","province":"AB","postalCode":"T2P 1J9"},
+    "shipmentType": "ltl_pallet",
+    "pieces": 2,
+    "pallets": 2,
+    "weightLbs": 700,
+    "lengthIn": 48,
+    "widthIn": 40,
+    "heightIn": 60,
+    "serviceLevel": "standard",
+    "accessorials": ["liftgate", "residential"],
+    "notes": "Customer prefers delivery before Friday."
+  }'
+```
+
+```bash
+curl -X POST http://localhost:8080/api/parse-request \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text":"Need to ship 2 pallets from Vancouver to Calgary. Each pallet is 48x40x60 and 350 lbs. Needs liftgate and residential delivery before Friday."
+  }'
+```
+
+For a direct Docker backend test, include the default token header on POST
+requests:
+
+```bash
+curl -X POST http://localhost:8080/api/parse-request \
+  -H "Content-Type: application/json" \
+  -H "X-API-Token: dev-token" \
+  -d '{"text":"Need to ship 2 pallets from Vancouver to Calgary."}'
+```
+
 ## Demo workflow
 
 1. Open the frontend.
@@ -213,6 +300,7 @@ curl -X POST http://localhost:8080/api/parse-request \
 4. Review the estimated range, breakdown, confidence, manual-review flags, and AI summary.
 5. Copy the customer-ready response.
 6. Paste a messy customer request into the parser and show how the form can be prefilled.
+7. Confirm the `From parser: N fields` chip appears in the shipment details header.
 
 ## Notes for the evaluator
 

@@ -9,17 +9,9 @@ A customer asks for an LTL freight quote:
 ## Steps
 
 1. Open the frontend.
-2. Paste the request into the messy request parser.
-3. Click **Parse request**.
-4. Confirm the extracted fields:
-   - Origin: Vancouver, BC
-   - Destination: Calgary, AB
-   - Pallets: 2
-   - Dimensions: 48 x 40 x 60 inches
-   - Weight: 700 lbs total
-   - Accessorials: liftgate, residential delivery
-5. Click **Generate quote**.
-6. Review:
+2. Click **Load demo**.
+3. Click **Generate quote**.
+4. Review:
    - Estimated quote range
    - Chargeable weight
    - Fuel surcharge
@@ -29,7 +21,17 @@ A customer asks for an LTL freight quote:
    - Missing information checklist
    - AI-generated operations summary
    - Customer-ready response
-7. Use the **Copy customer response** button.
+5. Use the **Copy response** button.
+6. Paste the request into the messy request parser.
+7. Click **Parse request**.
+8. Confirm the extracted fields:
+   - Origin: Vancouver, BC
+   - Destination: Calgary, AB
+   - Pallets: 2
+   - Dimensions: 48 x 40 x 60 inches
+   - Weight: 700 lbs total
+   - Accessorials: liftgate, residential delivery
+9. Point out the subtle `From parser: N fields` chip in the shipment details header.
 
 ## Key point to mention
 

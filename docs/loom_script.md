@@ -1,5 +1,14 @@
 # Loom Video Script
 
+## Recording requirements
+
+- Target length: about 3 minutes.
+- Share setting: public or unlisted link accessible without login.
+- Show the frontend and briefly show the backend/frontend or Docker stack running.
+- Do not expose API keys, tokens, `.env` files, terminal history with secrets, or browser extension popups.
+- Mention deterministic pricing versus AI-generated summaries and customer communication.
+- Show the messy request parser, the subtle form-populated confirmation, and the copied customer-ready response.
+
 ## 0:00 - Intro
 
 Hi, this is Alvin De Castro. This is my practical assessment for the AI Web Developer role. I built a simple AI-powered freight quote assistant using a Go backend and a React frontend.
@@ -31,6 +40,8 @@ Here is the customer-ready response. The user can copy it and send it as a first
 ## 2:10 - Messy request parser
 
 Freight requests often arrive as messy customer emails. I added a parser where a user can paste a plain-English request. The app extracts route, pallets, dimensions, weight, accessorials, and service level into the form.
+
+After parsing, the shipment details card shows a subtle confirmation chip so the operator can tell the parser populated the form without a disruptive toast or focus jump.
 
 ## 2:40 - Engineering tradeoffs
 
