@@ -43,7 +43,7 @@ The deploy job:
 3. Pushes the current commit to Heroku Git.
 4. Scales one web dyno.
 5. Sets the dyno type to `basic`.
-6. Verifies `/api/health`.
+6. Verifies `/api/health` with bounded retries while the dyno starts.
 
 The workflow does not set `OPENAI_API_KEY`. Add it directly in Heroku config if
 you want live AI summaries:
@@ -66,7 +66,8 @@ Set `deploy` to:
 After adding `HEROKU_APP_NAME` and `HEROKU_API_KEY` in GitHub repository
 secrets, push any commit to `main` to verify deployment. The workflow does not
 filter by changed paths, so a documentation-only commit is enough to run CI,
-build the Heroku image, deploy to Heroku, and verify `/api/health`.
+build the Heroku image, deploy to Heroku, and verify `/api/health` with
+bounded retries.
 
 Confirm the run in GitHub Actions:
 

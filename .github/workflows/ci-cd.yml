@@ -150,4 +150,14 @@ jobs:
 
       - name: Verify Heroku health
         if: steps.secrets.outputs.configured == 'true'
-        run: curl --fail --show-error --silent "https://${HEROKU_APP_NAME}.herokuapp.com/api/health"
+        run: |
+          curl \
+            --fail \
+            --show-error \
+            --silent \
+            --retry 12 \
+            --retry-all-errors \
+            --retry-delay 10 \
+            --connect-timeout 10 \
+            --max-time 20 \
+            "https://${HEROKU_APP_NAME}.herokuapp.com/api/health"
