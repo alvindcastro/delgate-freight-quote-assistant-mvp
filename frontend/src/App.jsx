@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createQuote, getQuotes, parseRequestText } from './api.js'
 
 const accessorialOptions = [
@@ -60,9 +60,18 @@ function App() {
   const [copied, setCopied] = useState(false)
   const [liveMessage, setLiveMessage] = useState('')
   const [parserOpen, setParserOpen] = useState(false)
+  const [parserAppliedCount, setParserAppliedCount] = useState(0)
+  const [parserAppliedGlow, setParserAppliedGlow] = useState(false)
+  const parserAppliedTimer = useRef(null)
 
   useEffect(() => {
     refreshQuotes()
+  }, [])
+
+  useEffect(() => () => {
+    if (parserAppliedTimer.current) {
+      clearTimeout(parserAppliedTimer.current)
+    }
   }, [])
 
   const currency = useMemo(
@@ -79,11 +88,34 @@ function App() {
     }
   }
 
+  function clearParserApplied() {
+    if (parserAppliedTimer.current) {
+      clearTimeout(parserAppliedTimer.current)
+      parserAppliedTimer.current = null
+    }
+    setParserAppliedCount(0)
+    setParserAppliedGlow(false)
+  }
+
+  function showParserApplied(count) {
+    if (parserAppliedTimer.current) {
+      clearTimeout(parserAppliedTimer.current)
+    }
+    setParserAppliedCount(count)
+    setParserAppliedGlow(true)
+    parserAppliedTimer.current = setTimeout(() => {
+      setParserAppliedGlow(false)
+      parserAppliedTimer.current = null
+    }, 1800)
+  }
+
   function updateField(name, value) {
+    clearParserApplied()
     setForm((current) => ({ ...current, [name]: value }))
   }
 
   function updateLocation(type, name, value) {
+    clearParserApplied()
     setForm((current) => ({
       ...current,
       [type]: {
@@ -94,6 +126,7 @@ function App() {
   }
 
   function updateNumber(name, value) {
+    clearParserApplied()
     const parsed = Number(value)
     updateField(name, Number.isNaN(parsed) ? 0 : parsed)
   }
@@ -103,11 +136,20 @@ function App() {
     if (parseResult) {
       setParseResult(null)
     }
+    clearParserApplied()
+  }
+
+  function loadDemoForm() {
+    setForm(demoForm)
+    setError('')
+    clearParserApplied()
+    setLiveMessage('Demo shipment loaded.')
   }
 
   function resetParserText() {
     setRawText(messyDemo)
     setParseResult(null)
+    clearParserApplied()
     setParserOpen(true)
   }
 
@@ -115,12 +157,14 @@ function App() {
     setRawText('')
     setParseResult(null)
     setError('')
+    clearParserApplied()
     setLiveMessage('Parser text cleared.')
   }
 
   function clearForm() {
     setForm(emptyForm)
     setError('')
+    clearParserApplied()
     setLiveMessage('Shipment form cleared.')
   }
 
@@ -138,10 +182,12 @@ function App() {
     setParseResult(null)
     setError('')
     setCopied(false)
+    clearParserApplied()
     setLiveMessage('Workspace cleared.')
   }
 
   function toggleAccessorial(value) {
+    clearParserApplied()
     setForm((current) => {
       const exists = current.accessorials.includes(value)
       return {
@@ -178,9 +224,16 @@ function App() {
     setLiveMessage('Parsing customer request.')
     try {
       const data = await parseRequestText(rawText)
+      const extractedCount = Array.isArray(data.extractedFields) ? data.extractedFields.length : 0
       setParseResult(data)
       setForm((current) => mergeDraftIntoForm(current, data.draft, data.extractedFields))
-      setLiveMessage('Customer request parsed.')
+      if (extractedCount > 0) {
+        showParserApplied(extractedCount)
+        setLiveMessage(`Customer request parsed. Shipment form updated with ${extractedCount} fields.`)
+      } else {
+        clearParserApplied()
+        setLiveMessage('Customer request parsed. No form fields were detected.')
+      }
     } catch (err) {
       setError(err.message)
       setLiveMessage('Request parsing failed.')
@@ -219,7 +272,7 @@ function App() {
             Estimate, review, and draft customer-ready freight responses from one focused workspace.
           </p>
           <div className="hero-actions">
-            <button type="button" className="primary action-fit" onClick={() => setForm(demoForm)}>
+            <button type="button" className="primary action-fit" onClick={loadDemoForm}>
               Load demo
               <span aria-hidden="true">→</span>
             </button>
@@ -279,7 +332,7 @@ function App() {
             </button>
           </div>
           {parseResult && (
-            <div className="parse-result" aria-live="polite">
+            <div className="parse-result">
               <ParseGroup label="Extracted" items={parseResult.extractedFields} empty="No fields detected" />
               <ParseGroup label="Still needed" items={parseResult.missingHints} empty="None" />
               {parseResult.warnings.length > 0 && <ParseGroup label="Warnings" items={parseResult.warnings} />}
@@ -289,15 +342,22 @@ function App() {
       </details>
 
       <main className="content-grid">
-        <form className="quote-form" onSubmit={handleSubmit} aria-busy={loading}>
+        <form className={`quote-form${parserAppliedGlow ? ' parser-applied' : ''}`} onSubmit={handleSubmit} aria-busy={loading}>
           <div className="form-title-row">
             <div>
               <SectionLabel text="Quote intake" />
-              <h2>Shipment details</h2>
+              <div className="heading-with-chip">
+                <h2>Shipment details</h2>
+                {parserAppliedCount > 0 && (
+                  <span className="applied-chip" aria-label={`${parserAppliedCount} parser fields applied to shipment details`}>
+                    From parser: {parserAppliedCount} fields
+                  </span>
+                )}
+              </div>
             </div>
             <div className="button-row compact">
               <button type="button" className="ghost action-fit" onClick={clearForm}>Clear form</button>
-              <button type="button" className="secondary action-fit" onClick={() => setForm(demoForm)}>Load demo</button>
+              <button type="button" className="secondary action-fit" onClick={loadDemoForm}>Load demo</button>
             </div>
           </div>
 

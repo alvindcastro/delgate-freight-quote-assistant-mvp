@@ -354,6 +354,21 @@ h3 {
   padding: clamp(16px, 2.4vw, 22px);
 }
 
+.quote-form {
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.quote-form.parser-applied {
+  border-color: rgba(4, 120, 87, 0.32);
+  background:
+    linear-gradient(90deg, rgba(4, 120, 87, 0.08), transparent 18rem),
+    rgba(255, 255, 255, 0.96);
+  box-shadow:
+    inset 4px 0 0 rgba(4, 120, 87, 0.7),
+    var(--shadow-md);
+  animation: parser-applied-settle 1.6s ease-out;
+}
+
 .parser-card h2,
 .quote-form h2,
 .quote-result h2,
@@ -376,6 +391,33 @@ h3 {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
+}
+
+.heading-with-chip {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.heading-with-chip h2 {
+  margin-bottom: 0;
+}
+
+.applied-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border: 1px solid rgba(4, 120, 87, 0.22);
+  border-radius: 999px;
+  background: rgba(4, 120, 87, 0.08);
+  color: var(--success);
+  padding: 6px 10px;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .quote-actions,
@@ -1044,6 +1086,20 @@ details[open] > summary .summary-toggle::before {
   }
   50% {
     transform: translateY(10px);
+  }
+}
+
+@keyframes parser-applied-settle {
+  0% {
+    box-shadow:
+      inset 4px 0 0 rgba(4, 120, 87, 0.95),
+      0 0 0 4px rgba(4, 120, 87, 0.1),
+      var(--shadow-md);
+  }
+  100% {
+    box-shadow:
+      inset 4px 0 0 rgba(4, 120, 87, 0.7),
+      var(--shadow-md);
   }
 }
 
