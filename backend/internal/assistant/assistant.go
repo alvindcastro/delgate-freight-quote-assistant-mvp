@@ -49,7 +49,7 @@ func NewService(config Config) *Service {
 
 func (s *Service) Generate(ctx context.Context, req quote.Request, resp quote.Response) Output {
 	if strings.TrimSpace(s.config.APIKey) != "" {
-		if output, err := s.generateWithOpenAI(ctx, req, resp); err == nil && output.Summary != "" {
+		if output, err := s.generateWithOpenAI(ctx, req, resp); err == nil {
 			output.Provider = "openai"
 			return output
 		}
@@ -173,8 +173,12 @@ func (s *Service) generateWithOpenAI(ctx context.Context, req quote.Request, res
 	content = strings.TrimSuffix(content, "```")
 	content = strings.TrimSpace(content)
 
-	var output Output
-	if err := json.Unmarshal([]byte(content), &output); err != nil {
+	var modelOutput openAIOutput
+	if err := json.Unmarshal([]byte(content), &modelOutput); err != nil {
+		return Output{}, err
+	}
+	output, err := validateOpenAIOutput(modelOutput, resp)
+	if err != nil {
 		return Output{}, err
 	}
 	return output, nil
@@ -183,6 +187,96 @@ func (s *Service) generateWithOpenAI(ctx context.Context, req quote.Request, res
 type chatMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
+}
+
+type openAIOutput struct {
+	Summary           *string   `json:"summary"`
+	CustomerMessage   *string   `json:"customerMessage"`
+	FollowUpQuestions *[]string `json:"followUpQuestions"`
+}
+
+func validateOpenAIOutput(modelOutput openAIOutput, resp quote.Response) (Output, error) {
+	if modelOutput.Summary == nil {
+		return Output{}, fmt.Errorf("OpenAI output missing summary")
+	}
+	if modelOutput.CustomerMessage == nil {
+		return Output{}, fmt.Errorf("OpenAI output missing customerMessage")
+	}
+	if modelOutput.FollowUpQuestions == nil {
+		return Output{}, fmt.Errorf("OpenAI output missing followUpQuestions")
+	}
+
+	summary := strings.TrimSpace(*modelOutput.Summary)
+	customerMessage := strings.TrimSpace(*modelOutput.CustomerMessage)
+	questions := *modelOutput.FollowUpQuestions
+
+	if summary == "" {
+		return Output{}, fmt.Errorf("OpenAI output summary is empty")
+	}
+	if customerMessage == "" {
+		return Output{}, fmt.Errorf("OpenAI output customerMessage is empty")
+	}
+	if !containsQuoteFacts(summary, resp, true) {
+		return Output{}, fmt.Errorf("OpenAI summary changed quote facts")
+	}
+	if !containsQuoteFacts(customerMessage, resp, false) {
+		return Output{}, fmt.Errorf("OpenAI customerMessage changed quote facts")
+	}
+	if !containsNonBindingDisclaimer(customerMessage) {
+		return Output{}, fmt.Errorf("OpenAI customerMessage missing non-binding disclaimer")
+	}
+	if !sameStrings(questions, followUpQuestions(resp)) {
+		return Output{}, fmt.Errorf("OpenAI followUpQuestions changed required follow-up questions")
+	}
+
+	return Output{
+		Summary:           summary,
+		CustomerMessage:   customerMessage,
+		FollowUpQuestions: questions,
+	}, nil
+}
+
+func containsQuoteFacts(text string, resp quote.Response, requireInternalFacts bool) bool {
+	if !strings.Contains(text, resp.RouteLabel) {
+		return false
+	}
+	if !strings.Contains(text, estimatedRange(resp)) {
+		return false
+	}
+	if requireInternalFacts {
+		if !strings.Contains(text, fmt.Sprintf("Chargeable weight is %.0f lbs", resp.ChargeableWeightLbs)) {
+			return false
+		}
+		if !strings.Contains(text, "Status: "+resp.Status) {
+			return false
+		}
+		if !strings.Contains(text, "Confidence: "+resp.Confidence) {
+			return false
+		}
+	}
+	return true
+}
+
+func estimatedRange(resp quote.Response) string {
+	return fmt.Sprintf("%s %.0f-%.0f", resp.Currency, resp.EstimatedLow, resp.EstimatedHigh)
+}
+
+func containsNonBindingDisclaimer(text string) bool {
+	normalized := strings.ToLower(text)
+	return (strings.Contains(normalized, "not a binding") || strings.Contains(normalized, "non-binding")) &&
+		strings.Contains(normalized, "final pricing")
+}
+
+func sameStrings(left, right []string) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for i := range left {
+		if left[i] != right[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func followUpQuestions(resp quote.Response) []string {
