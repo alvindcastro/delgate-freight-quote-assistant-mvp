@@ -54,6 +54,7 @@ delgate-freight-quote-assistant/
 │   ├── internal/quote/types.go
 │   ├── internal/quote/engine_test.go
 │   ├── internal/store/store.go
+│   ├── Dockerfile
 │   ├── go.mod
 │   └── .env.example
 ├── frontend/
@@ -61,6 +62,8 @@ delgate-freight-quote-assistant/
 │   ├── src/api.js
 │   ├── src/main.jsx
 │   ├── src/styles.css
+│   ├── Dockerfile
+│   ├── nginx.conf.template
 │   ├── package.json
 │   ├── index.html
 │   └── .env.example
@@ -68,6 +71,8 @@ delgate-freight-quote-assistant/
 │   ├── demo_walkthrough.md
 │   └── loom_script.md
 ├── Makefile
+├── docker-compose.yml
+├── .dockerignore
 ├── .gitignore
 └── README.md
 ```
@@ -77,6 +82,7 @@ delgate-freight-quote-assistant/
 - Go 1.22+
 - Node.js 18+
 - npm
+- Docker and Docker Compose for the containerized run path
 
 ## Run locally
 
@@ -106,6 +112,40 @@ npm run dev
 ```
 
 The frontend starts on `http://localhost:5173`.
+
+## Run with Docker
+
+Docker Compose builds and runs both services:
+
+```bash
+docker compose up --build
+```
+
+Open the frontend at `http://localhost:5173`. The backend is kept internal to
+the Compose network; the frontend nginx container proxies `/api` requests to it.
+
+The compose stack sets `API_TOKEN=dev-token` by default because the backend
+binds to `0.0.0.0` inside Docker. Nginx injects that token server-side when
+proxying `/api`, so the browser bundle does not expose it. To use a different
+token or enable live AI summaries:
+
+```bash
+API_TOKEN=your-token OPENAI_API_KEY=your-api-key docker compose up --build
+```
+
+Useful shortcuts:
+
+```bash
+make docker-build
+make docker-up
+make docker-down
+```
+
+For direct backend API testing, publish the backend port explicitly:
+
+```bash
+docker compose run --rm -p 8080:8080 backend
+```
 
 ## Optional OpenAI configuration
 

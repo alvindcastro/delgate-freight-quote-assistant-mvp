@@ -46,6 +46,18 @@ npm run dev
 
 Frontend URL: `http://localhost:5173`
 
+### Docker
+
+```bash
+docker compose up --build
+```
+
+Docker frontend URL: `http://localhost:5173`
+
+The compose stack runs the backend internally on `0.0.0.0:8080` with
+`API_TOKEN=dev-token` by default, and the frontend nginx container proxies
+`/api` to the backend while injecting that token server-side.
+
 ## Optional AI setup
 
 The app works without an API key. To enable live AI summaries, set this in `backend/.env` or your shell. Local backend startup loads `backend/.env` automatically, while shell variables take precedence:

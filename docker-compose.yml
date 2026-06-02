@@ -1,0 +1,34 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      PORT: "8080"
+      BACKEND_BIND_ADDR: 0.0.0.0
+      FRONTEND_ORIGIN: http://localhost:5173
+      API_TOKEN: ${API_TOKEN:-dev-token}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1/chat/completions}
+      QUOTE_HISTORY_LIMIT: ${QUOTE_HISTORY_LIMIT:-1000}
+      MAX_REQUEST_BODY_BYTES: ${MAX_REQUEST_BODY_BYTES:-1048576}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        VITE_API_URL: ""
+    environment:
+      API_TOKEN: ${API_TOKEN:-dev-token}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "5173:80"

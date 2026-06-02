@@ -1,0 +1,10 @@
+.git
+.beads
+.claude
+.env
+**/.env
+**/node_modules
+**/dist
+**/.DS_Store
+backend/bin
+frontend/.vite
