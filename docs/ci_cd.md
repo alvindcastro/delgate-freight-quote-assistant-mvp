@@ -61,6 +61,21 @@ Set `deploy` to:
 - `true` to deploy after CI passes.
 - `false` to run validation only.
 
+## Deployment trigger check
+
+After adding `HEROKU_APP_NAME` and `HEROKU_API_KEY` in GitHub repository
+secrets, push any commit to `main` to verify deployment. The workflow does not
+filter by changed paths, so a documentation-only commit is enough to run CI,
+build the Heroku image, deploy to Heroku, and verify `/api/health`.
+
+Confirm the run in GitHub Actions:
+
+1. Open **Actions -> CI/CD**.
+2. Select the latest push run on `main`.
+3. Confirm `Backend tests`, `Frontend build`, and `Heroku image build` pass.
+4. Confirm `Deploy to Heroku` does not print the missing-secrets skip message.
+5. Confirm `Verify Heroku health` succeeds.
+
 ## Cost control
 
 The workflow chooses Heroku Basic for evaluator reliability. To switch the app

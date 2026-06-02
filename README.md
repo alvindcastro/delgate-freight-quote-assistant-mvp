@@ -27,7 +27,7 @@ If no `OPENAI_API_KEY` is provided, the app still works with a local rule-based 
 - Rule-based fallback assistant when no API key is configured
 - Messy text parser for freight requests pasted from emails or notes
 - Quote history in memory
-- Clean README, env examples, and Loom walkthrough script
+- Clean README, env examples, deployment notes, and demo walkthrough docs
 
 ## Architecture
 
@@ -73,7 +73,6 @@ delgate-freight-quote-assistant/
 │   ├── ci_cd.md
 │   ├── demo_walkthrough.md
 │   ├── heroku_deployment.md
-│   ├── loom_script.md
 │   └── screenshots/
 ├── Makefile
 ├── Dockerfile.heroku
