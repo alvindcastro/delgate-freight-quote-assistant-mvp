@@ -504,12 +504,15 @@ function HeroGraphic({ quote, quotes }) {
   )
 }
 
-function DisclosureSection({ title, children, defaultOpen = false }) {
+function DisclosureSection({ title, children, defaultOpen = false, countLabel = '', countTone = 'neutral' }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
     <details className="form-section disclosure-section" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
       <summary className="mini-summary">
-        <h3>{title}</h3>
+        <div className="summary-title-row">
+          <h3>{title}</h3>
+          {countLabel ? <span className={`summary-count ${countTone}`}>{countLabel}</span> : null}
+        </div>
         <span className="summary-toggle" aria-hidden="true" />
       </summary>
       <div className="disclosure-body">{children}</div>
@@ -563,6 +566,12 @@ function LocationPanel({ title, location, onChange }) {
 }
 
 function QuoteResult({ quote, currency, onCopy, copied, onClear }) {
+  const missingCount = quote.missingFields?.length || 0
+  const riskCount = quote.riskFlags?.length || 0
+  const hasWarnings = missingCount > 0 || riskCount > 0
+  const missingLabel = `${missingCount} missing ${missingCount === 1 ? 'detail' : 'details'}`
+  const riskLabel = `${riskCount} ${riskCount === 1 ? 'risk flag' : 'risk flags'}`
+
   return (
     <section className="quote-result">
       <div className="quote-topline">
@@ -572,6 +581,7 @@ function QuoteResult({ quote, currency, onCopy, copied, onClear }) {
         </div>
         <div className="quote-actions">
           <StatusBadge value={quote.status} />
+          {missingCount > 0 ? <span className="warning-count">{missingLabel}</span> : null}
           <button type="button" className="ghost small" onClick={onClear}>Clear result</button>
         </div>
       </div>
@@ -581,6 +591,21 @@ function QuoteResult({ quote, currency, onCopy, copied, onClear }) {
         <strong>{currency.format(quote.estimatedLow)} – {currency.format(quote.estimatedHigh)}</strong>
         <p>{quote.disclaimer}</p>
       </div>
+
+      {hasWarnings ? (
+        <div className="quote-warning" role="status" aria-live="polite">
+          <strong>Review before sending</strong>
+          <p>
+            {missingCount > 0
+              ? `This estimate is missing ${missingCount} required ${missingCount === 1 ? 'detail' : 'details'}.`
+              : 'No required shipment details are missing.'}
+            {' '}
+            {riskCount > 0
+              ? `${riskCount} ${riskCount === 1 ? 'risk flag needs' : 'risk flags need'} operations review.`
+              : 'No risk flags were detected.'}
+          </p>
+        </div>
+      ) : null}
 
       <div className="metric-grid">
         <Metric label="Confidence" value={quote.confidence} />
@@ -596,11 +621,11 @@ function QuoteResult({ quote, currency, onCopy, copied, onClear }) {
         <p className="summary-box">{quote.assistantSummary}</p>
       </DisclosureSection>
 
-      <DisclosureSection title="Missing details">
+      <DisclosureSection title="Missing details" countLabel={missingLabel} countTone={missingCount > 0 ? 'warning' : 'neutral'}>
         <TagList items={quote.missingFields} empty="No missing details detected" />
       </DisclosureSection>
 
-      <DisclosureSection title="Risk flags">
+      <DisclosureSection title="Risk flags" countLabel={riskLabel} countTone={riskCount > 0 ? 'warning' : 'neutral'}>
         <TagList items={quote.riskFlags} empty="No risk flags detected" />
       </DisclosureSection>
 
