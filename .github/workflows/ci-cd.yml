@@ -142,11 +142,26 @@ jobs:
       - name: Set app URL
         id: app-url
         run: |
-          if [ -n "${HEROKU_APP_NAME}" ]; then
-            echo "url=https://${HEROKU_APP_NAME}.herokuapp.com" >> "$GITHUB_OUTPUT"
-          else
+          if [ -z "${HEROKU_APP_NAME}" ]; then
             echo "url=" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+
+          app_url="$(
+            heroku apps:info -a "${HEROKU_APP_NAME}" --json |
+              node -e '
+                let input = "";
+                process.stdin.on("data", chunk => input += chunk);
+                process.stdin.on("end", () => {
+                  const data = JSON.parse(input);
+                  const url = data.web_url || data.app?.web_url || "";
+                  if (!url) process.exit(1);
+                  process.stdout.write(url.replace(/\/$/, ""));
+                });
+              '
+          )"
+          echo "url=${app_url}" >> "$GITHUB_OUTPUT"
+          echo "HEROKU_APP_URL=${app_url}" >> "$GITHUB_ENV"
 
       - name: Verify Heroku health
         if: steps.secrets.outputs.configured == 'true'
@@ -160,4 +175,4 @@ jobs:
             --retry-delay 10 \
             --connect-timeout 10 \
             --max-time 20 \
-            "https://${HEROKU_APP_NAME}.herokuapp.com/api/health"
+            "${HEROKU_APP_URL}/api/health"
