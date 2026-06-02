@@ -9,6 +9,7 @@ DelGate Freight Quote Assistant MVP
 - Loom walkthrough: TODO add public or unlisted Loom URL before submission.
 - Live demo: TODO add Heroku URL if available. If not hosted, use the local/Docker run instructions below.
 - Screenshots: `docs/screenshots/`
+- CI/CD checklist: `docs/ci_cd.md`
 - Demo walkthrough script: `docs/demo_walkthrough.md`
 - Heroku deployment checklist: `docs/heroku_deployment.md`
 - Loom recording script: `docs/loom_script.md`
@@ -103,6 +104,12 @@ heroku ps:type basic -a your-delgate-demo-name
 ```
 
 Full checklist: `docs/heroku_deployment.md`.
+
+### CI/CD
+
+GitHub Actions runs backend tests, frontend build verification, and the Heroku
+single-dyno image build. If `HEROKU_APP_NAME` and `HEROKU_API_KEY` are set as
+GitHub secrets, pushes to `main` deploy to Heroku after CI passes.
 
 ## Optional AI setup
 

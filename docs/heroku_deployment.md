@@ -101,6 +101,15 @@ Open the app:
 heroku open -a your-delgate-demo-name
 ```
 
+## GitHub Actions deploy
+
+The repository includes `.github/workflows/ci-cd.yml`. After setting
+`HEROKU_APP_NAME` and `HEROKU_API_KEY` as GitHub repository secrets, pushes to
+`main` deploy automatically after CI passes. Manual deploys are available from
+the GitHub Actions **CI/CD** workflow.
+
+See `docs/ci_cd.md` for the full workflow behavior.
+
 ## Verify
 
 ```bash

@@ -45,6 +45,8 @@ backend/ Go net/http API
 
 ```text
 delgate-freight-quote-assistant/
+├── .github/
+│   └── workflows/ci-cd.yml
 ├── backend/
 │   ├── cmd/server/main.go
 │   ├── internal/api/handlers.go
@@ -68,6 +70,7 @@ delgate-freight-quote-assistant/
 │   ├── index.html
 │   └── .env.example
 ├── docs/
+│   ├── ci_cd.md
 │   ├── demo_walkthrough.md
 │   ├── heroku_deployment.md
 │   ├── loom_script.md
@@ -199,6 +202,13 @@ heroku config:set OPENAI_API_KEY=your_api_key_here -a your-delgate-demo-name
 
 See `docs/heroku_deployment.md` for the full deployment, verification, and cost
 control checklist.
+
+## CI/CD
+
+GitHub Actions validates backend tests, frontend builds, and the Heroku
+single-dyno Docker image. When `HEROKU_APP_NAME` and `HEROKU_API_KEY` secrets
+are configured, pushes to `main` can deploy to Heroku automatically after CI
+passes. See `docs/ci_cd.md`.
 
 ## Test and build
 

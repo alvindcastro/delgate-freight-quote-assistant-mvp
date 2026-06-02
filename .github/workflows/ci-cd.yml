@@ -1,0 +1,153 @@
+name: CI/CD
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      deploy:
+        description: "Deploy to Heroku after CI passes"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.mod
+
+      - name: Run Go tests
+        working-directory: backend
+        run: go test ./...
+
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+  heroku-image:
+    name: Heroku image build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build Heroku image
+        run: docker build -f Dockerfile.heroku -t delgate-heroku-ci .
+
+  deploy-heroku:
+    name: Deploy to Heroku
+    runs-on: ubuntu-latest
+    needs:
+      - backend
+      - frontend
+      - heroku-image
+    if: >-
+      ${{
+        github.event_name != 'pull_request' &&
+        (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') &&
+        (github.event_name != 'workflow_dispatch' || inputs.deploy == 'true')
+      }}
+    environment:
+      name: heroku-basic
+      url: ${{ steps.app-url.outputs.url }}
+    env:
+      HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
+      HEROKU_API_KEY: ${{ secrets.HEROKU_API_KEY }}
+    steps:
+      - name: Check Heroku secrets
+        id: secrets
+        run: |
+          if [ -z "${HEROKU_APP_NAME}" ] || [ -z "${HEROKU_API_KEY}" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "Heroku secrets are not configured; skipping deploy."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.secrets.outputs.configured == 'true'
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install Heroku CLI
+        if: steps.secrets.outputs.configured == 'true'
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+
+      - name: Configure Heroku app
+        if: steps.secrets.outputs.configured == 'true'
+        run: |
+          heroku stack:set container -a "${HEROKU_APP_NAME}"
+          heroku config:set \
+            ALLOW_PUBLIC_API=true \
+            BACKEND_BIND_ADDR=0.0.0.0 \
+            STATIC_DIR=/app/public \
+            OPENAI_MODEL=gpt-4o-mini \
+            -a "${HEROKU_APP_NAME}"
+
+      - name: Deploy Heroku app
+        if: steps.secrets.outputs.configured == 'true'
+        run: |
+          git remote add heroku "https://heroku:${HEROKU_API_KEY}@git.heroku.com/${HEROKU_APP_NAME}.git"
+          git push heroku HEAD:main --force
+
+      - name: Ensure one Basic web dyno
+        if: steps.secrets.outputs.configured == 'true'
+        run: |
+          heroku ps:scale web=1 -a "${HEROKU_APP_NAME}"
+          heroku ps:type basic -a "${HEROKU_APP_NAME}"
+
+      - name: Set app URL
+        id: app-url
+        run: |
+          if [ -n "${HEROKU_APP_NAME}" ]; then
+            echo "url=https://${HEROKU_APP_NAME}.herokuapp.com" >> "$GITHUB_OUTPUT"
+          else
+            echo "url=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Verify Heroku health
+        if: steps.secrets.outputs.configured == 'true'
+        run: curl --fail --show-error --silent "https://${HEROKU_APP_NAME}.herokuapp.com/api/health"
