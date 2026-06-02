@@ -59,6 +59,7 @@ function App() {
   const [error, setError] = useState('')
   const [copied, setCopied] = useState(false)
   const [liveMessage, setLiveMessage] = useState('')
+  const [parserOpen, setParserOpen] = useState(false)
 
   useEffect(() => {
     refreshQuotes()
@@ -107,6 +108,37 @@ function App() {
   function resetParserText() {
     setRawText(messyDemo)
     setParseResult(null)
+    setParserOpen(true)
+  }
+
+  function clearParserText() {
+    setRawText('')
+    setParseResult(null)
+    setError('')
+    setLiveMessage('Parser text cleared.')
+  }
+
+  function clearForm() {
+    setForm(emptyForm)
+    setError('')
+    setLiveMessage('Shipment form cleared.')
+  }
+
+  function clearQuoteResult() {
+    setQuote(null)
+    setCopied(false)
+    setError('')
+    setLiveMessage('Quote result pane cleared.')
+  }
+
+  function clearWorkspace() {
+    setForm(emptyForm)
+    setQuote(null)
+    setRawText('')
+    setParseResult(null)
+    setError('')
+    setCopied(false)
+    setLiveMessage('Workspace cleared.')
   }
 
   function toggleAccessorial(value) {
@@ -191,8 +223,8 @@ function App() {
               Load demo
               <span aria-hidden="true">→</span>
             </button>
-            <button type="button" className="secondary action-fit" onClick={resetParserText}>
-              Reset parser
+            <button type="button" className="secondary action-fit" onClick={clearWorkspace}>
+              Clear workspace
             </button>
           </div>
         </div>
@@ -207,40 +239,54 @@ function App() {
 
       <div className="sr-only" role="status" aria-live="polite">{liveMessage}</div>
 
-      <section className="parser-card" aria-labelledby="parser-title" aria-busy={parsing}>
-        <div className="section-title-row">
+      <details
+        className="parser-card disclosure-card"
+        open={parserOpen}
+        onToggle={(event) => setParserOpen(event.currentTarget.open)}
+        aria-busy={parsing}
+      >
+        <summary className="disclosure-summary">
           <div>
             <SectionLabel text="Request parser" />
-            <h2 id="parser-title">Paste customer request text</h2>
+            <h2 id="parser-title">Customer text parser</h2>
+            <p>Paste messy shipment details only when you need assisted intake.</p>
           </div>
-          {parseResult && <span className="result-count">{parseResult.extractedFields.length} fields</span>}
-        </div>
-        <label className="field full parser-input" htmlFor="raw-request-text">
-          <span>Request text</span>
-          <textarea
-            id="raw-request-text"
-            value={rawText}
-            onChange={(event) => updateRawText(event.target.value)}
-            rows={4}
-          />
-        </label>
-        <div className="button-row">
-          <button className="primary action-fit" type="button" onClick={handleParse} disabled={parsing}>
-            {parsing ? 'Parsing…' : 'Parse request'}
-            <span aria-hidden="true">→</span>
-          </button>
-          <button className="ghost action-fit" type="button" onClick={resetParserText}>
-            Reset text
-          </button>
-        </div>
-        {parseResult && (
-          <div className="parse-result" aria-live="polite">
-            <ParseGroup label="Extracted" items={parseResult.extractedFields} empty="No fields detected" />
-            <ParseGroup label="Still needed" items={parseResult.missingHints} empty="None" />
-            {parseResult.warnings.length > 0 && <ParseGroup label="Warnings" items={parseResult.warnings} />}
+          <div className="summary-actions">
+            {parseResult && <span className="result-count">{parseResult.extractedFields.length} fields</span>}
+            <span className="summary-toggle" aria-hidden="true" />
           </div>
-        )}
-      </section>
+        </summary>
+        <div className="disclosure-body" aria-labelledby="parser-title">
+          <label className="field full parser-input" htmlFor="raw-request-text">
+            <span>Request text</span>
+            <textarea
+              id="raw-request-text"
+              value={rawText}
+              onChange={(event) => updateRawText(event.target.value)}
+              rows={3}
+            />
+          </label>
+          <div className="button-row">
+            <button className="primary action-fit" type="button" onClick={handleParse} disabled={parsing || !rawText.trim()}>
+              {parsing ? 'Parsing...' : 'Parse request'}
+              <span aria-hidden="true">→</span>
+            </button>
+            <button className="secondary action-fit" type="button" onClick={resetParserText}>
+              Demo text
+            </button>
+            <button className="ghost action-fit" type="button" onClick={clearParserText} disabled={!rawText && !parseResult}>
+              Clear text
+            </button>
+          </div>
+          {parseResult && (
+            <div className="parse-result" aria-live="polite">
+              <ParseGroup label="Extracted" items={parseResult.extractedFields} empty="No fields detected" />
+              <ParseGroup label="Still needed" items={parseResult.missingHints} empty="None" />
+              {parseResult.warnings.length > 0 && <ParseGroup label="Warnings" items={parseResult.warnings} />}
+            </div>
+          )}
+        </div>
+      </details>
 
       <main className="content-grid">
         <form className="quote-form" onSubmit={handleSubmit} aria-busy={loading}>
@@ -250,26 +296,26 @@ function App() {
               <h2>Shipment details</h2>
             </div>
             <div className="button-row compact">
-              <button type="button" className="ghost action-fit" onClick={() => setForm(emptyForm)}>Clear</button>
+              <button type="button" className="ghost action-fit" onClick={clearForm}>Clear form</button>
               <button type="button" className="secondary action-fit" onClick={() => setForm(demoForm)}>Load demo</button>
             </div>
           </div>
 
-          <FormSection title="Customer">
+          <DisclosureSection title="Customer" defaultOpen>
             <div className="form-grid two">
               <Input label="Customer name" value={form.customerName} autoComplete="name" onChange={(value) => updateField('customerName', value)} />
               <Input label="Customer email" type="email" value={form.customerEmail} autoComplete="email" onChange={(value) => updateField('customerEmail', value)} />
             </div>
-          </FormSection>
+          </DisclosureSection>
 
-          <FormSection title="Route">
+          <DisclosureSection title="Route" defaultOpen>
             <div className="form-grid two panel-pair">
               <LocationPanel title="Pickup" location={form.origin} onChange={(name, value) => updateLocation('origin', name, value)} />
               <LocationPanel title="Delivery" location={form.destination} onChange={(name, value) => updateLocation('destination', name, value)} />
             </div>
-          </FormSection>
+          </DisclosureSection>
 
-          <FormSection title="Freight profile">
+          <DisclosureSection title="Freight profile" defaultOpen>
             <div className="form-grid three">
               <Select label="Shipment type" value={form.shipmentType} onChange={(value) => updateField('shipmentType', value)} options={[
                 ['ltl_pallet', 'LTL pallet'],
@@ -294,33 +340,37 @@ function App() {
               ['expedited', 'Expedited'],
               ['same_day', 'Same day'],
             ]} />
-          </FormSection>
+          </DisclosureSection>
 
-          <fieldset className="accessorials">
-            <legend>Accessorials</legend>
-            <div className="checkbox-grid">
-              {accessorialOptions.map((item) => (
-                <label key={item.value} className="checkbox-card">
-                  <input
-                    type="checkbox"
-                    checked={form.accessorials.includes(item.value)}
-                    onChange={() => toggleAccessorial(item.value)}
-                  />
-                  <span>{item.label}</span>
-                </label>
-              ))}
-            </div>
-          </fieldset>
+          <DisclosureSection title="Accessorials">
+            <fieldset className="accessorials">
+              <legend className="sr-only">Accessorials</legend>
+              <div className="checkbox-grid">
+                {accessorialOptions.map((item) => (
+                  <label key={item.value} className="checkbox-card">
+                    <input
+                      type="checkbox"
+                      checked={form.accessorials.includes(item.value)}
+                      onChange={() => toggleAccessorial(item.value)}
+                    />
+                    <span>{item.label}</span>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </DisclosureSection>
 
-          <label className="field full">
-            <span>Operations notes</span>
-            <textarea
-              value={form.notes}
-              onChange={(event) => updateField('notes', event.target.value)}
-              rows={4}
-              placeholder="Customer needs delivery before Friday; confirm appointment window."
-            />
-          </label>
+          <DisclosureSection title="Operations notes">
+            <label className="field full">
+              <span>Notes</span>
+              <textarea
+                value={form.notes}
+                onChange={(event) => updateField('notes', event.target.value)}
+                rows={3}
+                placeholder="Customer needs delivery before Friday; confirm appointment window."
+              />
+            </label>
+          </DisclosureSection>
 
           <button className="primary submit-button" type="submit" disabled={loading}>
             {loading ? 'Generating quote…' : 'Generate quote'}
@@ -330,7 +380,7 @@ function App() {
 
         <aside className="result-column">
           {quote ? (
-            <QuoteResult quote={quote} currency={currency} onCopy={copyCustomerMessage} copied={copied} />
+            <QuoteResult quote={quote} currency={currency} onCopy={copyCustomerMessage} copied={copied} onClear={clearQuoteResult} />
           ) : (
             <div className="empty-state">
               <SectionLabel text="Quote result" />
@@ -394,12 +444,16 @@ function HeroGraphic({ quote, quotes }) {
   )
 }
 
-function FormSection({ title, children }) {
+function DisclosureSection({ title, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen)
   return (
-    <section className="form-section">
-      <h3>{title}</h3>
-      {children}
-    </section>
+    <details className="form-section disclosure-section" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+      <summary className="mini-summary">
+        <h3>{title}</h3>
+        <span className="summary-toggle" aria-hidden="true" />
+      </summary>
+      <div className="disclosure-body">{children}</div>
+    </details>
   )
 }
 
@@ -448,7 +502,7 @@ function LocationPanel({ title, location, onChange }) {
   )
 }
 
-function QuoteResult({ quote, currency, onCopy, copied }) {
+function QuoteResult({ quote, currency, onCopy, copied, onClear }) {
   return (
     <section className="quote-result">
       <div className="quote-topline">
@@ -456,7 +510,10 @@ function QuoteResult({ quote, currency, onCopy, copied }) {
           <SectionLabel text={quote.quoteId} />
           <h2>{quote.routeLabel}</h2>
         </div>
-        <StatusBadge value={quote.status} />
+        <div className="quote-actions">
+          <StatusBadge value={quote.status} />
+          <button type="button" className="ghost small" onClick={onClear}>Clear result</button>
+        </div>
       </div>
 
       <div className="estimate-card">
@@ -471,33 +528,28 @@ function QuoteResult({ quote, currency, onCopy, copied }) {
         <Metric label="AI provider" value={quote.aiProvider} />
       </div>
 
-      <section className="mini-section">
-        <h3>Breakdown</h3>
+      <DisclosureSection title="Breakdown" defaultOpen>
         <BreakdownTable breakdown={quote.breakdown} currency={currency} />
-      </section>
+      </DisclosureSection>
 
-      <section className="mini-section">
-        <h3>AI operations summary</h3>
+      <DisclosureSection title="AI operations summary">
         <p className="summary-box">{quote.assistantSummary}</p>
-      </section>
+      </DisclosureSection>
 
-      <section className="mini-section">
-        <h3>Missing details</h3>
+      <DisclosureSection title="Missing details">
         <TagList items={quote.missingFields} empty="No missing details detected" />
-      </section>
+      </DisclosureSection>
 
-      <section className="mini-section">
-        <h3>Risk flags</h3>
+      <DisclosureSection title="Risk flags">
         <TagList items={quote.riskFlags} empty="No risk flags detected" />
-      </section>
+      </DisclosureSection>
 
-      <section className="mini-section">
-        <div className="section-title-row">
-          <h3>Customer-ready response</h3>
-          <button type="button" className="secondary small" onClick={onCopy}>{copied ? 'Copied' : 'Copy'}</button>
+      <DisclosureSection title="Customer-ready response" defaultOpen>
+        <div className="copy-row">
+          <button type="button" className="secondary small" onClick={onCopy}>{copied ? 'Copied' : 'Copy response'}</button>
         </div>
         <pre className="message-box">{quote.customerMessage}</pre>
-      </section>
+      </DisclosureSection>
     </section>
   )
 }
@@ -529,27 +581,33 @@ function BreakdownTable({ breakdown, currency }) {
 
 function QuoteHistory({ quotes, currency, onSelect }) {
   return (
-    <section className="history-card">
-      <div className="section-title-row">
+    <details className="history-card disclosure-card">
+      <summary className="disclosure-summary">
         <div>
           <SectionLabel text="In-memory history" />
           <h2>Recent quotes</h2>
         </div>
-      </div>
-      {quotes.length === 0 ? (
-        <p className="muted">Generated quotes will appear here.</p>
-      ) : (
-        <div className="history-list">
-          {quotes.map((item) => (
-            <button key={item.quoteId} type="button" onClick={() => onSelect(item)} className="history-item">
-              <span>{item.routeLabel}</span>
-              <strong>{currency.format(item.estimatedLow)} – {currency.format(item.estimatedHigh)}</strong>
-              <small>{item.status}</small>
-            </button>
-          ))}
+        <div className="summary-actions">
+          <span className="result-count">{quotes.length} saved</span>
+          <span className="summary-toggle" aria-hidden="true" />
         </div>
-      )}
-    </section>
+      </summary>
+      <div className="disclosure-body">
+        {quotes.length === 0 ? (
+          <p className="muted">Generated quotes will appear here.</p>
+        ) : (
+          <div className="history-list">
+            {quotes.map((item) => (
+              <button key={item.quoteId} type="button" onClick={() => onSelect(item)} className="history-item">
+                <span>{item.routeLabel}</span>
+                <strong>{currency.format(item.estimatedLow)} – {currency.format(item.estimatedHigh)}</strong>
+                <small>{item.status}</small>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </details>
   )
 }
 

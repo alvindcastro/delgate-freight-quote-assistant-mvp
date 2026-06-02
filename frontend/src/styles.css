@@ -73,7 +73,7 @@ h2 {
 h1 {
   max-width: 760px;
   margin-bottom: 18px;
-  font-size: clamp(2.7rem, 7vw, 5.25rem);
+  font-size: clamp(2.25rem, 5vw, 3.85rem);
   line-height: 1.04;
 }
 
@@ -105,7 +105,7 @@ h3 {
 .app-shell {
   width: min(var(--container), calc(100% - 32px));
   margin: 0 auto;
-  padding: 26px 0 64px;
+  padding: 18px 0 56px;
 }
 
 .hero {
@@ -114,8 +114,8 @@ h3 {
   grid-template-columns: minmax(0, 1.08fr) minmax(380px, 0.92fr);
   gap: 32px;
   align-items: center;
-  min-height: 500px;
-  margin-bottom: 24px;
+  min-height: 360px;
+  margin-bottom: 18px;
   overflow: hidden;
   border: 1px solid rgba(226, 232, 240, 0.9);
   border-radius: var(--radius-card);
@@ -136,22 +136,22 @@ h3 {
 .hero-copy {
   position: relative;
   z-index: 2;
-  padding: clamp(28px, 5vw, 58px);
+  padding: clamp(24px, 4vw, 42px);
 }
 
 .hero-text {
   max-width: 650px;
   margin-bottom: 0;
   color: var(--muted-foreground);
-  font-size: 1.05rem;
-  line-height: 1.7;
+  font-size: 0.98rem;
+  line-height: 1.62;
 }
 
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 28px;
+  margin-top: 22px;
 }
 
 .gradient-text {
@@ -197,14 +197,14 @@ h3 {
 
 .hero-graphic {
   position: relative;
-  min-height: 420px;
+  min-height: 320px;
   margin-right: clamp(18px, 4vw, 48px);
   isolation: isolate;
 }
 
 .hero-ring {
   position: absolute;
-  inset: 48px 30px 36px 30px;
+  inset: 34px 30px 28px 30px;
   border: 1px dashed rgba(0, 82, 255, 0.38);
   border-radius: 999px;
   animation: slow-spin 60s linear infinite;
@@ -218,15 +218,15 @@ h3 {
 
 .primary-node {
   right: 48px;
-  top: 72px;
-  width: 92px;
-  height: 92px;
+  top: 48px;
+  width: 78px;
+  height: 78px;
   background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
   box-shadow: var(--shadow-accent);
 }
 
 .secondary-node {
-  bottom: 58px;
+  bottom: 46px;
   left: 70px;
   width: 56px;
   height: 56px;
@@ -241,7 +241,7 @@ h3 {
   border: 1px solid rgba(226, 232, 240, 0.82);
   border-radius: var(--radius-card);
   background: rgba(255, 255, 255, 0.84);
-  padding: 18px;
+  padding: 16px;
   box-shadow: var(--shadow-md);
   backdrop-filter: blur(16px);
 }
@@ -261,19 +261,19 @@ h3 {
 .hero-panel strong {
   display: block;
   margin-top: 8px;
-  font-size: 1.35rem;
+  font-size: 1.08rem;
   line-height: 1.2;
 }
 
 .floating-one {
   left: 18px;
-  top: 92px;
+  top: 70px;
   animation: float-one 4.8s ease-in-out infinite;
 }
 
 .floating-two {
   right: 0;
-  bottom: 92px;
+  bottom: 72px;
   animation: float-two 5.4s ease-in-out infinite;
 }
 
@@ -290,7 +290,7 @@ h3 {
 .hero-count {
   position: absolute;
   left: 118px;
-  bottom: 18px;
+  bottom: 12px;
   display: grid;
   place-items: center;
   width: 104px;
@@ -336,14 +336,14 @@ h3 {
 }
 
 .parser-card {
-  margin-bottom: 24px;
-  padding: clamp(20px, 3vw, 30px);
+  margin-bottom: 18px;
+  padding: clamp(16px, 2.4vw, 22px);
 }
 
 .content-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(380px, 520px);
-  gap: 24px;
+  gap: 18px;
   align-items: start;
 }
 
@@ -351,7 +351,22 @@ h3 {
 .quote-result,
 .history-card,
 .empty-state {
-  padding: clamp(20px, 3vw, 28px);
+  padding: clamp(16px, 2.4vw, 22px);
+}
+
+.parser-card h2,
+.quote-form h2,
+.quote-result h2,
+.history-card h2,
+.empty-state h2 {
+  margin-bottom: 4px;
+  font-size: clamp(1.18rem, 2vw, 1.55rem);
+  line-height: 1.18;
+}
+
+.ops-strip h2 {
+  font-size: clamp(1.35rem, 2.2vw, 2rem);
+  line-height: 1.18;
 }
 
 .form-title-row,
@@ -363,10 +378,94 @@ h3 {
   gap: 16px;
 }
 
+.quote-actions,
+.summary-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.disclosure-card,
+.disclosure-section {
+  overflow: hidden;
+}
+
+.disclosure-summary,
+.mini-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.disclosure-summary::-webkit-details-marker,
+.mini-summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure-summary:focus-visible,
+.mini-summary:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+  border-radius: var(--radius-control);
+}
+
+.disclosure-summary p {
+  margin: 4px 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.summary-toggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(0, 82, 255, 0.22);
+  border-radius: var(--radius-control);
+  background: rgba(0, 82, 255, 0.05);
+  color: var(--accent);
+}
+
+.summary-toggle::before {
+  content: "+";
+  font-size: 1.05rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+details[open] > summary .summary-toggle::before {
+  content: "-";
+}
+
+.disclosure-body {
+  margin-top: 14px;
+}
+
+.mini-summary h3 {
+  margin: 0;
+}
+
+.mini-summary {
+  align-items: center;
+}
+
+.mini-summary .summary-toggle {
+  width: 28px;
+  height: 28px;
+  flex-basis: 28px;
+}
+
 .form-section {
-  margin-top: 22px;
+  margin-top: 14px;
   border-top: 1px solid var(--border);
-  padding-top: 18px;
+  padding-top: 12px;
 }
 
 .form-section:first-of-type {
@@ -376,8 +475,8 @@ h3 {
 
 .form-grid {
   display: grid;
-  gap: 14px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .form-grid.two {
@@ -402,7 +501,7 @@ h3 {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   background: linear-gradient(180deg, #ffffff, #f8fafc);
-  padding: 16px;
+  padding: 13px;
 }
 
 .location-panel legend {
@@ -418,19 +517,19 @@ h3 {
 
 .field {
   display: grid;
-  gap: 7px;
-  margin-bottom: 14px;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .field span,
 .accessorials legend {
   color: #334155;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   font-weight: 800;
 }
 
 .field.full {
-  margin-top: 16px;
+  margin-top: 12px;
 }
 
 .parser-input {
@@ -442,12 +541,12 @@ h3 {
 .field input,
 .field select {
   width: 100%;
-  min-height: 46px;
+  min-height: 44px;
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
   background: #ffffff;
   color: var(--foreground);
-  padding: 12px 13px;
+  padding: 10px 12px;
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
@@ -471,7 +570,7 @@ h3 {
 }
 
 .accessorials {
-  margin: 24px 0 0;
+  margin: 0;
   border: 0;
   padding: 0;
 }
@@ -486,14 +585,14 @@ h3 {
 .checkbox-card {
   display: flex;
   align-items: center;
-  min-height: 48px;
+  min-height: 44px;
   gap: 9px;
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
   background: #ffffff;
-  padding: 10px 11px;
+  padding: 9px 10px;
   color: #334155;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-weight: 700;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, background 0.2s ease;
 }
@@ -515,7 +614,7 @@ h3 {
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 14px;
+  margin-top: 12px;
 }
 
 .button-row.compact {
@@ -528,11 +627,12 @@ h3 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 46px;
-  gap: 9px;
+  min-height: 44px;
+  gap: 8px;
   border-radius: var(--radius-control);
-  padding: 11px 16px;
+  padding: 9px 13px;
   border: 1px solid transparent;
+  font-size: 0.92rem;
   font-weight: 800;
   line-height: 1.1;
   text-decoration: none;
@@ -636,7 +736,7 @@ h3 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 14px;
 }
 
 .parse-result > div {
@@ -675,7 +775,7 @@ h3 {
   position: sticky;
   top: 20px;
   display: grid;
-  gap: 24px;
+  gap: 16px;
   max-height: calc(100vh - 40px);
   overflow: auto;
   padding-right: 2px;
@@ -689,14 +789,14 @@ h3 {
 
 .estimate-card {
   position: relative;
-  margin: 20px 0;
+  margin: 16px 0;
   overflow: hidden;
   border: 1px solid rgba(0, 82, 255, 0.16);
   border-radius: var(--radius-card);
   background:
     radial-gradient(circle at 8% 0%, rgba(0, 82, 255, 0.1), transparent 15rem),
     #ffffff;
-  padding: 20px;
+  padding: 16px;
 }
 
 .estimate-card::before {
@@ -709,10 +809,10 @@ h3 {
 
 .estimate-card strong {
   display: block;
-  margin: 9px 0 10px;
+  margin: 8px 0;
   color: var(--foreground);
   font-family: "Calistoga", Georgia, serif;
-  font-size: clamp(2rem, 4vw, 3.1rem);
+  font-size: clamp(1.55rem, 2.6vw, 2rem);
   font-weight: 400;
   line-height: 1.05;
 }
@@ -763,19 +863,19 @@ h3 {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   background: #ffffff;
-  padding: 14px;
+  padding: 12px;
 }
 
 .metric-card strong {
   display: block;
-  margin-top: 7px;
+  margin-top: 6px;
   color: var(--foreground);
-  font-size: 1rem;
+  font-size: 0.92rem;
   overflow-wrap: anywhere;
 }
 
 .mini-section {
-  margin-top: 22px;
+  margin-top: 14px;
 }
 
 .summary-box,
@@ -783,9 +883,10 @@ h3 {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   background: #ffffff;
-  padding: 14px;
+  padding: 12px;
   color: #334155;
-  line-height: 1.6;
+  font-size: 0.92rem;
+  line-height: 1.55;
 }
 
 .message-box {
@@ -807,7 +908,8 @@ h3 {
 
 .breakdown-table td {
   border-bottom: 1px solid var(--border);
-  padding: 10px 12px;
+  padding: 8px 10px;
+  font-size: 0.9rem;
 }
 
 .breakdown-table tr:last-child td {
@@ -830,14 +932,14 @@ h3 {
   border-radius: 999px;
   background: var(--muted);
   color: #334155;
-  padding: 7px 9px;
-  font-size: 0.8rem;
+  padding: 6px 8px;
+  font-size: 0.78rem;
   font-weight: 800;
 }
 
 .history-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
 }
 
 .history-item {
@@ -847,7 +949,7 @@ h3 {
   border: 1px solid var(--border);
   border-radius: var(--radius-card);
   background: #ffffff;
-  padding: 13px;
+  padding: 11px;
   text-align: left;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -871,7 +973,7 @@ h3 {
   grid-template-columns: minmax(0, 0.9fr) minmax(420px, 1.1fr);
   gap: 28px;
   align-items: end;
-  margin-top: 28px;
+  margin-top: 20px;
   overflow: hidden;
   border-radius: var(--radius-card);
   background:
@@ -880,7 +982,7 @@ h3 {
     var(--foreground);
   background-size: auto, 32px 32px, auto;
   color: var(--background);
-  padding: clamp(24px, 4vw, 38px);
+  padding: clamp(20px, 3vw, 30px);
 }
 
 .ops-strip h2 {
@@ -989,8 +1091,14 @@ h3 {
 
   .form-title-row,
   .section-title-row,
-  .quote-topline {
+  .quote-topline,
+  .disclosure-summary {
     flex-direction: column;
+  }
+
+  .summary-actions,
+  .quote-actions {
+    justify-content: flex-start;
   }
 
   .primary:not(.small),
