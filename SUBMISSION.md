@@ -7,9 +7,10 @@ DelGate Freight Quote Assistant MVP
 ## Submission assets
 
 - Loom walkthrough: TODO add public or unlisted Loom URL before submission.
-- Live demo: TODO add deployed URL if available. If not hosted, use the local/Docker run instructions below.
+- Live demo: TODO add Heroku URL if available. If not hosted, use the local/Docker run instructions below.
 - Screenshots: `docs/screenshots/`
 - Demo walkthrough script: `docs/demo_walkthrough.md`
+- Heroku deployment checklist: `docs/heroku_deployment.md`
 - Loom recording script: `docs/loom_script.md`
 
 ## Brief explanation
@@ -80,6 +81,28 @@ make frontend
 
 For Vite local development, `VITE_API_URL` can stay blank because the dev server
 proxies `/api` to `http://localhost:8080`.
+
+### Heroku demo deployment
+
+This repo includes `heroku.yml` and `Dockerfile.heroku` for a single-dyno Heroku
+deployment where the Go server serves both `/api/*` and the built React
+frontend.
+
+Recommended evaluator tier: **Basic**. It is always on and avoids Eco cold
+starts. Use **Eco** only when lower cost matters more than first-load
+reliability.
+
+```bash
+heroku login
+heroku create your-delgate-demo-name
+heroku stack:set container -a your-delgate-demo-name
+heroku config:set ALLOW_PUBLIC_API=true BACKEND_BIND_ADDR=0.0.0.0 STATIC_DIR=/app/public OPENAI_MODEL=gpt-4o-mini -a your-delgate-demo-name
+git push heroku main
+heroku ps:scale web=1 -a your-delgate-demo-name
+heroku ps:type basic -a your-delgate-demo-name
+```
+
+Full checklist: `docs/heroku_deployment.md`.
 
 ## Optional AI setup
 

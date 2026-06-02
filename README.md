@@ -69,10 +69,13 @@ delgate-freight-quote-assistant/
 │   └── .env.example
 ├── docs/
 │   ├── demo_walkthrough.md
+│   ├── heroku_deployment.md
 │   ├── loom_script.md
 │   └── screenshots/
 ├── Makefile
+├── Dockerfile.heroku
 ├── docker-compose.yml
+├── heroku.yml
 ├── .dockerignore
 ├── .gitignore
 └── README.md
@@ -167,6 +170,36 @@ Because Compose sets `API_TOKEN=dev-token` by default, direct quote and parse
 requests to that backend must include `X-API-Token: dev-token` or
 `Authorization: Bearer dev-token`.
 
+## Deploy to Heroku
+
+The recommended Heroku deployment is a single web dyno that serves both the Go
+API and the built React frontend. `heroku.yml` uses `Dockerfile.heroku` to build
+that combined image.
+
+For an evaluator demo, use a **Basic** dyno so the app stays awake. Use **Eco**
+only if lower cost is more important than avoiding cold starts.
+
+Quick path:
+
+```bash
+heroku login
+heroku create your-delgate-demo-name
+heroku stack:set container -a your-delgate-demo-name
+heroku config:set ALLOW_PUBLIC_API=true BACKEND_BIND_ADDR=0.0.0.0 STATIC_DIR=/app/public OPENAI_MODEL=gpt-4o-mini -a your-delgate-demo-name
+git push heroku main
+heroku ps:scale web=1 -a your-delgate-demo-name
+heroku ps:type basic -a your-delgate-demo-name
+```
+
+Optional live AI summaries:
+
+```bash
+heroku config:set OPENAI_API_KEY=your_api_key_here -a your-delgate-demo-name
+```
+
+See `docs/heroku_deployment.md` for the full deployment, verification, and cost
+control checklist.
+
 ## Test and build
 
 Run the project quality gate from the repository root:
@@ -195,12 +228,15 @@ OPENAI_MODEL=gpt-4o-mini
 
 The backend will use the OpenAI API for summary generation. If the call fails, it falls back to the local assistant automatically.
 
-By default the backend binds to `127.0.0.1`. For deployed or shared
+By default the backend binds to `127.0.0.1`. For deployed or shared API-only
 environments, set `BACKEND_BIND_ADDR` explicitly and configure `API_TOKEN`.
 When `API_TOKEN` is set, quote and parse requests must send
-`Authorization: Bearer <token>` or `X-API-Token`. A browser demo can set the
-same value in `frontend/.env` as `VITE_API_TOKEN`; leave both token variables
-unset for local demo use.
+`Authorization: Bearer <token>` or `X-API-Token`.
+
+For the public single-app Heroku demo, leave `API_TOKEN` unset and use the
+explicit `ALLOW_PUBLIC_API=true` setting from `heroku.yml`. Do not put a secret
+API token into `VITE_API_TOKEN` for a public browser app; Vite variables are
+compiled into the frontend bundle.
 
 ## API examples
 

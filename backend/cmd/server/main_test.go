@@ -102,6 +102,32 @@ func TestConfigFromEnvRequiresTokenForPublicBind(t *testing.T) {
 	}
 }
 
+func TestConfigFromEnvAllowsExplicitPublicDemoWithoutToken(t *testing.T) {
+	clearConfigEnv(t)
+	t.Setenv("BACKEND_BIND_ADDR", "0.0.0.0")
+	t.Setenv("ALLOW_PUBLIC_API", "true")
+	t.Setenv("PORT", "18080")
+	t.Setenv("STATIC_DIR", "/app/public")
+
+	config, err := configFromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if config.Addr != "0.0.0.0:18080" {
+		t.Fatalf("expected public bind address, got %q", config.Addr)
+	}
+	if !config.AllowPublicAPI {
+		t.Fatalf("expected public API opt-in to be set")
+	}
+	if config.StaticDir != "/app/public" {
+		t.Fatalf("expected static dir to be configured, got %q", config.StaticDir)
+	}
+	if config.APIToken != "" {
+		t.Fatalf("expected no API token for public demo config")
+	}
+}
+
 func TestConfigFromEnvAllowsPublicBindWithToken(t *testing.T) {
 	clearConfigEnv(t)
 	t.Setenv("BACKEND_BIND_ADDR", "0.0.0.0")
@@ -125,6 +151,7 @@ func clearConfigEnv(t *testing.T) {
 	t.Helper()
 	for _, key := range []string{
 		"API_TOKEN",
+		"ALLOW_PUBLIC_API",
 		"BACKEND_BIND_ADDR",
 		"HTTP_IDLE_TIMEOUT",
 		"HTTP_READ_HEADER_TIMEOUT",

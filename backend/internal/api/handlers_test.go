@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"testing"
@@ -161,6 +163,101 @@ func TestAPITokenProtectsQuoteEndpointsButNotHealth(t *testing.T) {
 	handler.ServeHTTP(headerRec, headerReq)
 	if headerRec.Code != http.StatusOK {
 		t.Fatalf("expected X-API-Token to return %d, got %d", http.StatusOK, headerRec.Code)
+	}
+}
+
+func TestStaticFrontendServesAssetsAndSPAFallback(t *testing.T) {
+	staticDir := t.TempDir()
+	assetsDir := filepath.Join(staticDir, "assets")
+	if err := os.Mkdir(assetsDir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(staticDir, "index.html"), []byte("<div id=\"root\"></div>"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(assetsDir, "app.js"), []byte("console.log('ok')"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	server := NewServerWithConfig(store.NewMemoryStore(), assistant.NewService(assistant.Config{}), Config{
+		StaticDir: staticDir,
+	})
+	handler := server.Routes()
+
+	rootReq := httptest.NewRequest(http.MethodGet, "/", nil)
+	rootRec := httptest.NewRecorder()
+	handler.ServeHTTP(rootRec, rootReq)
+	if rootRec.Code != http.StatusOK || !strings.Contains(rootRec.Body.String(), "root") {
+		t.Fatalf("expected index for root, got status %d body %q", rootRec.Code, rootRec.Body.String())
+	}
+
+	assetReq := httptest.NewRequest(http.MethodGet, "/assets/app.js", nil)
+	assetRec := httptest.NewRecorder()
+	handler.ServeHTTP(assetRec, assetReq)
+	if assetRec.Code != http.StatusOK || !strings.Contains(assetRec.Body.String(), "console.log") {
+		t.Fatalf("expected asset response, got status %d body %q", assetRec.Code, assetRec.Body.String())
+	}
+	if got := assetRec.Header().Get("Cache-Control"); !strings.Contains(got, "immutable") {
+		t.Fatalf("expected immutable asset cache header, got %q", got)
+	}
+
+	spaReq := httptest.NewRequest(http.MethodGet, "/quotes/history", nil)
+	spaRec := httptest.NewRecorder()
+	handler.ServeHTTP(spaRec, spaReq)
+	if spaRec.Code != http.StatusOK || !strings.Contains(spaRec.Body.String(), "root") {
+		t.Fatalf("expected SPA fallback, got status %d body %q", spaRec.Code, spaRec.Body.String())
+	}
+	if got := spaRec.Header().Get("Cache-Control"); got != "no-cache" {
+		t.Fatalf("expected no-cache header on SPA fallback, got %q", got)
+	}
+}
+
+func TestStaticFrontendDoesNotFallbackForMissingAssetsOrUnsafeMethods(t *testing.T) {
+	staticDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(staticDir, "index.html"), []byte("<div id=\"root\"></div>"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	server := NewServerWithConfig(store.NewMemoryStore(), assistant.NewService(assistant.Config{}), Config{
+		StaticDir: staticDir,
+	})
+	handler := server.Routes()
+
+	missingAssetReq := httptest.NewRequest(http.MethodGet, "/assets/missing.js", nil)
+	missingAssetRec := httptest.NewRecorder()
+	handler.ServeHTTP(missingAssetRec, missingAssetReq)
+	if missingAssetRec.Code != http.StatusNotFound {
+		t.Fatalf("expected missing asset to return %d, got %d", http.StatusNotFound, missingAssetRec.Code)
+	}
+	if strings.Contains(missingAssetRec.Body.String(), "root") {
+		t.Fatalf("expected missing asset to avoid SPA fallback, got %q", missingAssetRec.Body.String())
+	}
+
+	postReq := httptest.NewRequest(http.MethodPost, "/quotes/history", nil)
+	postRec := httptest.NewRecorder()
+	handler.ServeHTTP(postRec, postReq)
+	if postRec.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("expected non-GET SPA path to return %d, got %d", http.StatusMethodNotAllowed, postRec.Code)
+	}
+}
+
+func TestStaticFrontendDoesNotMaskUnknownAPIRoutes(t *testing.T) {
+	staticDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(staticDir, "index.html"), []byte("<div id=\"root\"></div>"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	server := NewServerWithConfig(store.NewMemoryStore(), assistant.NewService(assistant.Config{}), Config{
+		StaticDir: staticDir,
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/not-found", nil)
+	rec := httptest.NewRecorder()
+	server.Routes().ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNotFound {
+		t.Fatalf("expected unknown API route to return %d, got %d", http.StatusNotFound, rec.Code)
+	}
+	if strings.Contains(rec.Body.String(), "root") {
+		t.Fatalf("expected API 404 not frontend index, got %q", rec.Body.String())
 	}
 }
 

@@ -11,6 +11,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -30,6 +32,7 @@ type Server struct {
 type Config struct {
 	APIToken            string
 	MaxRequestBodyBytes int64
+	StaticDir           string
 }
 
 const DefaultMaxRequestBodyBytes int64 = 1 << 20
@@ -53,6 +56,9 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/api/quote", s.requireAPIToken(s.handleQuote))
 	mux.HandleFunc("/api/quotes", s.requireAPIToken(s.handleQuotes))
 	mux.HandleFunc("/api/parse-request", s.requireAPIToken(s.handleParseRequest))
+	if strings.TrimSpace(s.config.StaticDir) != "" {
+		mux.HandleFunc("/", s.handleStatic)
+	}
 	return cors(mux)
 }
 
@@ -118,6 +124,44 @@ func (s *Server) handleParseRequest(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, parser.Parse(req.Text))
 }
 
+func (s *Server) handleStatic(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/api/") {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
+	if r.Method != http.MethodGet && r.Method != http.MethodHead {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	staticDir := strings.TrimSpace(s.config.StaticDir)
+	cleanPath := strings.TrimPrefix(path.Clean("/"+r.URL.Path), "/")
+	if cleanPath == "." {
+		cleanPath = ""
+	}
+
+	filePath := filepath.Join(staticDir, filepath.FromSlash(cleanPath))
+	if info, err := os.Stat(filePath); err == nil && !info.IsDir() {
+		if strings.HasPrefix(cleanPath, "assets/") {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		}
+		http.ServeFile(w, r, filePath)
+		return
+	}
+	if strings.HasPrefix(cleanPath, "assets/") || path.Ext(cleanPath) != "" {
+		writeError(w, http.StatusNotFound, "not found")
+		return
+	}
+
+	indexPath := filepath.Join(staticDir, "index.html")
+	if _, err := os.Stat(indexPath); err != nil {
+		writeError(w, http.StatusNotFound, "frontend build not found")
+		return
+	}
+	w.Header().Set("Cache-Control", "no-cache")
+	http.ServeFile(w, r, indexPath)
+}
+
 func cors(next http.Handler) http.Handler {
 	frontendOrigin := os.Getenv("FRONTEND_ORIGIN")
 	if frontendOrigin == "" {
@@ -133,7 +177,7 @@ func cors(next http.Handler) http.Handler {
 		}
 		w.Header().Set("Vary", "Origin")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-API-Token")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return

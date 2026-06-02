@@ -26,6 +26,8 @@ type serverConfig struct {
 	OpenAIBaseURL       string
 	QuoteHistoryLimit   int
 	MaxRequestBodyBytes int64
+	StaticDir           string
+	AllowPublicAPI      bool
 	ReadTimeout         time.Duration
 	ReadHeaderTimeout   time.Duration
 	WriteTimeout        time.Duration
@@ -53,6 +55,7 @@ func main() {
 	apiServer := api.NewServerWithConfig(quoteStore, assistantService, api.Config{
 		APIToken:            config.APIToken,
 		MaxRequestBodyBytes: config.MaxRequestBodyBytes,
+		StaticDir:           config.StaticDir,
 	})
 	server := &http.Server{
 		Addr:              config.Addr,
@@ -66,6 +69,8 @@ func main() {
 	log.Printf("DelGate Freight Quote Assistant API listening on http://%s", config.Addr)
 	log.Printf("OpenAI enabled: %t", config.OpenAIAPIKey != "")
 	log.Printf("API token required: %t", config.APIToken != "")
+	log.Printf("Static frontend enabled: %t", config.StaticDir != "")
+	log.Printf("Public API allowed without token: %t", config.AllowPublicAPI)
 
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatal(err)
@@ -129,8 +134,9 @@ func loadEnvFile(path string) error {
 func configFromEnv() (serverConfig, error) {
 	bindAddr := getenv("BACKEND_BIND_ADDR", "127.0.0.1")
 	token := strings.TrimSpace(os.Getenv("API_TOKEN"))
-	if !isLocalBindAddr(bindAddr) && token == "" {
-		return serverConfig{}, fmt.Errorf("API_TOKEN is required when BACKEND_BIND_ADDR is %q", bindAddr)
+	allowPublicAPI := getenvBool("ALLOW_PUBLIC_API", false)
+	if !isLocalBindAddr(bindAddr) && token == "" && !allowPublicAPI {
+		return serverConfig{}, fmt.Errorf("API_TOKEN is required when BACKEND_BIND_ADDR is %q unless ALLOW_PUBLIC_API=true", bindAddr)
 	}
 
 	port := getenv("PORT", "8080")
@@ -144,12 +150,29 @@ func configFromEnv() (serverConfig, error) {
 		OpenAIBaseURL:       getenv("OPENAI_BASE_URL", "https://api.openai.com/v1/chat/completions"),
 		QuoteHistoryLimit:   getenvInt("QUOTE_HISTORY_LIMIT", store.DefaultMaxQuotes),
 		MaxRequestBodyBytes: int64(getenvInt("MAX_REQUEST_BODY_BYTES", int(api.DefaultMaxRequestBodyBytes))),
+		StaticDir:           strings.TrimSpace(os.Getenv("STATIC_DIR")),
+		AllowPublicAPI:      allowPublicAPI,
 		ReadTimeout:         getenvDuration("HTTP_READ_TIMEOUT", 10*time.Second),
 		ReadHeaderTimeout:   getenvDuration("HTTP_READ_HEADER_TIMEOUT", 5*time.Second),
 		WriteTimeout:        getenvDuration("HTTP_WRITE_TIMEOUT", 15*time.Second),
 		IdleTimeout:         getenvDuration("HTTP_IDLE_TIMEOUT", 60*time.Second),
 	}
 	return config, nil
+}
+
+func getenvBool(key string, fallback bool) bool {
+	value := strings.TrimSpace(strings.ToLower(os.Getenv(key)))
+	if value == "" {
+		return fallback
+	}
+	switch value {
+	case "1", "true", "yes", "on":
+		return true
+	case "0", "false", "no", "off":
+		return false
+	default:
+		return fallback
+	}
 }
 
 func isLocalBindAddr(bindAddr string) bool {

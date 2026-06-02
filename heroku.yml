@@ -1,0 +1,13 @@
+setup:
+  config:
+    BACKEND_BIND_ADDR: "0.0.0.0"
+    STATIC_DIR: "/app/public"
+    ALLOW_PUBLIC_API: "true"
+    OPENAI_MODEL: "gpt-4o-mini"
+build:
+  docker:
+    web: Dockerfile.heroku
+  config:
+    VITE_API_URL: ""
+run:
+  web: /app/delgate-api
