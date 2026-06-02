@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "delgate_freight_quote_assistant_mvp",
+  "project_id": "73ed8211-c61a-4a2f-b047-941bcd7337bf"
+}
