@@ -528,7 +528,7 @@ function QuoteResult({ quote, currency, onCopy, copied, onClear }) {
         <Metric label="AI provider" value={quote.aiProvider} />
       </div>
 
-      <DisclosureSection title="Breakdown" defaultOpen>
+      <DisclosureSection title="Breakdown">
         <BreakdownTable breakdown={quote.breakdown} currency={currency} />
       </DisclosureSection>
 
